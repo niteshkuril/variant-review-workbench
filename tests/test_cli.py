@@ -4,11 +4,13 @@ import argparse
 import csv
 import gzip
 import json
+import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from src.cli import build_parser, run_pipeline
+from src.cli import build_parser, main, run_pipeline
 from src.models import GenomeAssembly
 
 
@@ -215,6 +217,102 @@ class CliTests(unittest.TestCase):
         self.assertEqual(csv_rows[0]["clinvar_matched"], "true")
         self.assertEqual(csv_rows[0]["condition_names"], "[\"Li-Fraumeni syndrome\"]")
         self.assertEqual(csv_rows[0]["flags"], "[\"clinvar_matched\", \"clinvar_conflict\", \"clinvar_review_stars_3\", \"submission_evidence_available\"]")
+
+    def test_run_pipeline_raises_clear_error_for_missing_input_file(self) -> None:
+        args = argparse.Namespace(
+            input="missing.vcf",
+            assembly=GenomeAssembly.GRCH38,
+            variant_summary="variant_summary.txt.gz",
+            conflict_summary=None,
+            submission_summary=None,
+            clinvar_cache_db=None,
+            disable_clinvar_cache=False,
+            out_dir="outputs",
+            enable_pharmgkb=False,
+        )
+
+        with self.assertRaisesRegex(ValueError, "Input VCF was not found: missing.vcf"):
+            run_pipeline(args)
+
+    def test_main_reports_when_pharmgkb_enabled_but_no_matches_found(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            input_path = root / "input.vcf"
+            input_path.write_text(
+                (
+                    "##fileformat=VCFv4.2\n"
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+                    "16\t31105878\trs104894541\tC\tT\t100\tPASS\tGENE=VKORC1;IMPACT=HIGH\n"
+                ),
+                encoding="utf-8",
+            )
+
+            variant_summary = root / "variant_summary.txt.gz"
+            with gzip.open(variant_summary, "wt", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle, delimiter="\t")
+                writer.writerow(
+                    [
+                        "#AlleleID",
+                        "Type",
+                        "Name",
+                        "GeneSymbol",
+                        "ClinicalSignificance",
+                        "LastEvaluated",
+                        "PhenotypeList",
+                        "ReviewStatus",
+                        "Origin",
+                        "Assembly",
+                        "Chromosome",
+                        "VariationID",
+                        "PositionVCF",
+                        "ReferenceAlleleVCF",
+                        "AlternateAlleleVCF",
+                        "RCVaccession",
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "10",
+                        "single nucleotide variant",
+                        "VKORC1 example",
+                        "VKORC1",
+                        "drug response",
+                        "Jan 01, 2025",
+                        "Warfarin response",
+                        "criteria provided, single submitter",
+                        "germline",
+                        "GRCh38",
+                        "16",
+                        "1234",
+                        "31105878",
+                        "C",
+                        "T",
+                        "RCV000000001",
+                    ]
+                )
+
+            out_dir = root / "outputs"
+            argv = [
+                "prog",
+                "--input",
+                str(input_path),
+                "--assembly",
+                "GRCh38",
+                "--variant-summary",
+                str(variant_summary),
+                "--out-dir",
+                str(out_dir),
+                "--enable-pharmgkb",
+            ]
+
+            with patch("src.pgx_enrichment.PharmGKBClient._get", return_value=([], False)):
+                with patch("sys.argv", argv):
+                    with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                        main()
+
+        output = stdout.getvalue()
+        self.assertIn("Run completed:", output)
+        self.assertIn("PharmGKB was enabled but no enrichment matches were found.", output)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 {
   "project_name": "variant-review-workbench",
-  "run_started_at": "2026-03-04T08:08:16.228267Z",
+  "run_started_at": "2026-03-04T08:19:28.114272Z",
   "input_path": "data\\demo.vcf",
   "output_dir": "outputs\\demo_run",
   "assembly": "GRCh38",
@@ -13,7 +13,7 @@
       "source_url": null,
       "release_label": null,
       "downloaded_at": null,
-      "accessed_at": "2026-03-04T08:08:16.219558Z"
+      "accessed_at": "2026-03-04T08:19:28.104657Z"
     },
     {
       "source_name": "ClinVar processed cache",
@@ -22,7 +22,7 @@
       "source_url": null,
       "release_label": null,
       "downloaded_at": null,
-      "accessed_at": "2026-03-04T08:08:16.219578Z"
+      "accessed_at": "2026-03-04T08:19:28.104691Z"
     },
     {
       "source_name": "ClinVar conflicting interpretations",
@@ -31,7 +31,7 @@
       "source_url": null,
       "release_label": null,
       "downloaded_at": null,
-      "accessed_at": "2026-03-04T08:08:16.223425Z"
+      "accessed_at": "2026-03-04T08:19:28.109167Z"
     },
     {
       "source_name": "ClinVar submission summary",
@@ -40,7 +40,7 @@
       "source_url": null,
       "release_label": null,
       "downloaded_at": null,
-      "accessed_at": "2026-03-04T08:08:16.227419Z"
+      "accessed_at": "2026-03-04T08:19:28.113403Z"
     }
   ],
   "statistics": {

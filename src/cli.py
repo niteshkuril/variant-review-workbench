@@ -22,6 +22,10 @@ from .report_builder import build_report_context, write_html_report
 from .vcf_parser import parse_vcf
 
 
+class CliUsageError(ValueError):
+    """Raised when CLI arguments are syntactically valid but operationally unusable."""
+
+
 def _parse_assembly(value: str) -> GenomeAssembly:
     """Parse a CLI assembly argument into a supported enum value."""
     normalized = value.strip()
@@ -35,7 +39,7 @@ def _parse_assembly(value: str) -> GenomeAssembly:
 def build_parser() -> argparse.ArgumentParser:
     """Create the top-level command-line parser."""
     parser = argparse.ArgumentParser(
-        description="Annotate and rank small variants against a local ClinVar snapshot.",
+        description="Annotate, rank, and report small variants against a local ClinVar snapshot.",
     )
     parser.add_argument("--input", required=True, help="Path to the input VCF or VCF.GZ file.")
     parser.add_argument("--assembly", required=True, type=_parse_assembly, help="Reference assembly: GRCh37 or GRCh38.")
@@ -64,7 +68,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--enable-pharmgkb",
         action="store_true",
-        help="Reserved flag for future PharmGKB enrichment integration.",
+        help="Enable optional live PharmGKB enrichment with local response caching.",
     )
     return parser
 
@@ -78,6 +82,54 @@ def _build_run_metadata(args: argparse.Namespace, output_dir: Path, index_source
         pharmgkb_enabled=bool(args.enable_pharmgkb),
         sources=index_sources,
     )
+
+
+def _validate_existing_file(path: Path, label: str) -> None:
+    """Validate that an expected input path exists as a file."""
+    if not path.exists():
+        raise CliUsageError(f"{label} was not found: {path}")
+    if not path.is_file():
+        raise CliUsageError(f"{label} must be a file path: {path}")
+
+
+def _validate_runtime_paths(args: argparse.Namespace) -> None:
+    """Validate user-supplied paths before executing the pipeline."""
+    _validate_existing_file(Path(args.input), "Input VCF")
+    _validate_existing_file(Path(args.variant_summary), "ClinVar variant summary")
+    if args.conflict_summary:
+        _validate_existing_file(Path(args.conflict_summary), "ClinVar conflict summary")
+    if args.submission_summary:
+        _validate_existing_file(Path(args.submission_summary), "ClinVar submission summary")
+
+    output_dir = Path(args.out_dir)
+    if output_dir.exists() and not output_dir.is_dir():
+        raise CliUsageError(f"Output path must be a directory: {output_dir}")
+
+    if args.clinvar_cache_db:
+        cache_db_path = Path(args.clinvar_cache_db)
+        if cache_db_path.exists() and cache_db_path.is_dir():
+            raise CliUsageError(f"ClinVar cache path must be a file path, not a directory: {cache_db_path}")
+
+
+def _emit_completion_summary(
+    outputs: dict[str, Path],
+    run_metadata: RunMetadata,
+) -> None:
+    """Print concise completion details and output locations for successful runs."""
+    stats = run_metadata.statistics
+    print(
+        (
+            "Run completed: "
+            f"{stats.input_variant_count} input variant(s), "
+            f"{stats.clinvar_matched_count} ClinVar match(es), "
+            f"{stats.conflict_flagged_count} conflict-flagged, "
+            f"{stats.pharmgkb_enriched_count} PharmGKB-enriched."
+        )
+    )
+    if run_metadata.pharmgkb_enabled and stats.pharmgkb_enriched_count == 0:
+        print("PharmGKB was enabled but no enrichment matches were found.")
+    for label, path in outputs.items():
+        print(f"{label}: {path.resolve()}")
 
 
 def _build_variant_export_records(ranked_variants: list) -> list[VariantExportRecord]:
@@ -168,8 +220,9 @@ def _write_csv(output_path: Path, rows: list[dict[str, object]]) -> Path:
     return output_path
 
 
-def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
-    """Execute the local ClinVar-first pipeline and write output artifacts."""
+def run_pipeline_with_details(args: argparse.Namespace) -> tuple[dict[str, Path], RunMetadata]:
+    """Execute the local ClinVar-first pipeline and return outputs with run metadata."""
+    _validate_runtime_paths(args)
     input_path = Path(args.input)
     output_dir = Path(args.out_dir)
     input_variants = parse_vcf(input_path, args.assembly)
@@ -220,15 +273,29 @@ def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
         "run_metadata_json": _write_json(output_dir / "run_metadata.json", run_metadata.model_dump(mode="json")),
         "report_html": write_html_report(output_dir / "report.html", ranked_variants, run_metadata=run_metadata),
     }
+    return outputs, run_metadata
+
+
+def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
+    """Execute the local ClinVar-first pipeline and write output artifacts."""
+    outputs, _ = run_pipeline_with_details(args)
     return outputs
 
 
 def main() -> None:
     """Parse CLI arguments and execute the local reporting pipeline."""
-    args = build_parser().parse_args()
-    outputs = run_pipeline(args)
-    for label, path in outputs.items():
-        print(f"{label}: {path.resolve()}")
+    parser = build_parser()
+    args = parser.parse_args()
+    try:
+        outputs, run_metadata = run_pipeline_with_details(args)
+    except CliUsageError as error:
+        parser.exit(2, f"Error: {error}\n")
+    except ValueError as error:
+        parser.exit(2, f"Error: {error}\n")
+    except OSError as error:
+        parser.exit(1, f"Runtime error: {error}\n")
+
+    _emit_completion_summary(outputs, run_metadata)
 
 
 if __name__ == "__main__":
