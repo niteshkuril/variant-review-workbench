@@ -2,10 +2,358 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Variant Review Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ report_title }}</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --paper: #f8fbff;
+      --panel: #ffffff;
+      --accent: #0b6e4f;
+      --accent-soft: #d9f3ea;
+      --warn: #a61b1b;
+      --warn-soft: #fde8e8;
+      --shadow: rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f4f8fb 0%, #eef4f7 100%);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 18px 40px var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 2.2rem;
+      line-height: 1.1;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 20px 0 28px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 40px var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.35rem;
+    }
+
+    .finding {
+      border: 1px solid var(--line);
+      border-left: 6px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: var(--paper);
+    }
+
+    .finding.conflict {
+      border-left-color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .finding-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge.conflict {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    ul {
+      margin: 10px 0 0 18px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 760px) {
+      .hero, section { padding: 18px; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr {
+        border-bottom: 1px solid var(--line);
+        padding: 12px 0;
+      }
+      td {
+        padding: 6px 0;
+        border-bottom: none;
+      }
+      td::before {
+        content: attr(data-label) ": ";
+        font-weight: 700;
+        color: var(--muted);
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>Variant Review Report</h1>
-  <p>Report template placeholder.</p>
+  <main>
+    <section class="hero">
+      <h1>{{ report_title }}</h1>
+      <div class="meta">
+        {% if input_path %}<div>Input: {{ input_path }}</div>{% endif %}
+        {% if assembly %}<div>Assembly: {{ assembly }}</div>{% endif %}
+        {% if generated_at %}<div>Generated: {{ generated_at }}</div>{% endif %}
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="metric-label">Total Variants</div>
+          <div class="metric-value">{{ summary.variant_count }}</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">ClinVar Matched</div>
+          <div class="metric-value">{{ summary.clinvar_matched_count }}</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Conflict Flagged</div>
+          <div class="metric-value">{{ summary.conflict_count }}</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">High Review Priority</div>
+          <div class="metric-value">{{ summary.tier_counts.high_review_priority }}</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">PharmGKB Enriched</div>
+          <div class="metric-value">{{ summary.pharmgkb_count }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Top Findings</h2>
+      {% if top_findings %}
+        {% for row in top_findings %}
+          <article class="finding{% if row.conflict == 'Yes' %} conflict{% endif %}">
+            <div class="finding-header">
+              <strong>{{ row.gene }}</strong>
+              <span>{{ row.locus }}</span>
+              <span class="badge">{{ row.priority_tier }}</span>
+              {% if row.conflict == 'Yes' %}
+                <span class="badge conflict">conflict</span>
+              {% endif %}
+            </div>
+            <div><strong>ClinVar:</strong> {{ row.clinical_significance }}{% if row.review_status %} | {{ row.review_status }}{% endif %}</div>
+            <div><strong>Condition(s):</strong> {{ row.condition_names }}</div>
+            <div><strong>Priority Score:</strong> {{ row.priority_score }}</div>
+            <ul>
+              {% for reason in row.rationale %}
+                <li>{{ reason }}</li>
+              {% endfor %}
+            </ul>
+          </article>
+        {% endfor %}
+      {% else %}
+        <p class="small">No ranked variants were available for reporting.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Conflict Review Queue</h2>
+      {% if conflict_rows %}
+        <table>
+          <thead>
+            <tr>
+              <th>Gene</th>
+              <th>Locus</th>
+              <th>ClinVar</th>
+              <th>Conditions</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in conflict_rows %}
+              <tr>
+                <td data-label="Gene">{{ row.gene }}</td>
+                <td data-label="Locus">{{ row.locus }}</td>
+                <td data-label="ClinVar">{{ row.clinical_significance }}</td>
+                <td data-label="Conditions">{{ row.condition_names }}</td>
+                <td data-label="Priority">{{ row.priority_tier }} ({{ row.priority_score }})</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="small">No conflict-flagged ClinVar matches were present in this run.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Variant Table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Record</th>
+            <th>Gene</th>
+            <th>Locus</th>
+            <th>Tier</th>
+            <th>Score</th>
+            <th>ClinVar</th>
+            <th>Review</th>
+            <th>Conflict</th>
+            <th>PharmGKB</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in variant_rows %}
+            <tr>
+              <td data-label="Record">{{ row.record_id }}</td>
+              <td data-label="Gene">{{ row.gene }}</td>
+              <td data-label="Locus">{{ row.locus }}</td>
+              <td data-label="Tier">{{ row.priority_tier }}</td>
+              <td data-label="Score">{{ row.priority_score }}</td>
+              <td data-label="ClinVar">{{ row.clinical_significance }}</td>
+              <td data-label="Review">{{ row.review_status }}</td>
+              <td data-label="Conflict">{{ row.conflict }}</td>
+              <td data-label="PharmGKB">{{ row.pharmgkb }}</td>
+              <td data-label="Flags">{{ row.flags | join(", ") if row.flags else "None" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Methods</h2>
+      <ul>
+        {% for note in methods_notes %}
+          <li>{{ note }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h2>Limitations</h2>
+      <ul>
+        {% for note in limitations_notes %}
+          <li>{{ note }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if sources %}
+      <section>
+        <h2>Source Provenance</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Kind</th>
+              <th>Path</th>
+              <th>URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for source in sources %}
+              <tr>
+                <td data-label="Source">{{ source.source_name }}</td>
+                <td data-label="Kind">{{ source.source_kind }}</td>
+                <td data-label="Path">{{ source.source_path or "Unspecified" }}</td>
+                <td data-label="URL">{{ source.source_url or "Unspecified" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    {% endif %}
+  </main>
 </body>
 </html>
