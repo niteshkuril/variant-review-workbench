@@ -9,6 +9,7 @@ from pathlib import Path
 from .annotator import annotate_variants
 from .clinvar_index import load_clinvar_index
 from .models import GenomeAssembly, RunMetadata
+from .pgx_enrichment import PharmGKBClient, enrich_annotated_variants
 from .ranker import rank_variants
 from .report_builder import build_report_context, write_html_report
 from .vcf_parser import parse_vcf
@@ -131,6 +132,9 @@ def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
 
     input_variants = parse_vcf(input_path, args.assembly)
     annotated_variants = annotate_variants(input_variants, clinvar_index)
+    if args.enable_pharmgkb:
+        pharmgkb_client = PharmGKBClient()
+        annotated_variants = enrich_annotated_variants(annotated_variants, pharmgkb_client)
     ranked_variants = rank_variants(annotated_variants)
 
     run_metadata = _build_run_metadata(args, output_dir, clinvar_index.provenance)
