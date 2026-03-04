@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from src.cli import build_parser, main, run_pipeline
+from src.models import RunMetadata
 from src.models import GenomeAssembly
 
 
@@ -313,6 +314,28 @@ class CliTests(unittest.TestCase):
         output = stdout.getvalue()
         self.assertIn("Run completed:", output)
         self.assertIn("PharmGKB was enabled but no enrichment matches were found.", output)
+
+    def test_cli_main_uses_shared_pipeline_service(self) -> None:
+        outputs = {"report_html": Path("report.html")}
+        run_metadata = RunMetadata(
+            input_path="input.vcf",
+            output_dir="outputs",
+            assembly=GenomeAssembly.GRCH38,
+            pharmgkb_enabled=False,
+            sources=[],
+        )
+        run_metadata.statistics.input_variant_count = 1
+        run_metadata.statistics.clinvar_matched_count = 1
+        run_metadata.statistics.conflict_flagged_count = 0
+        run_metadata.statistics.pharmgkb_enriched_count = 0
+
+        with patch("src.cli.run_pipeline_with_details", return_value=(outputs, run_metadata)) as mock_run:
+            with patch("sys.argv", ["prog", "--input", "input.vcf", "--assembly", "GRCh38", "--variant-summary", "variant_summary.txt.gz", "--out-dir", "outputs"]):
+                with patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                    main()
+
+        self.assertTrue(mock_run.called)
+        self.assertIn("Run completed:", stdout.getvalue())
 
 
 if __name__ == "__main__":
