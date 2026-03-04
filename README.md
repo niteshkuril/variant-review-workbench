@@ -189,6 +189,15 @@ The machine-readable outputs are intentionally separate from the human-oriented 
 python -m pip install -r requirements.txt
 ```
 
+## Quick Start
+
+Pick one of these entry points:
+
+1. CLI: run the existing pipeline directly and inspect the generated artifacts in `outputs/`.
+2. Web: start the Flask app locally and submit a VCF from the browser.
+
+If you only want to understand the project quickly, start with the web interface or open `outputs/demo_run/report.html`.
+
 ## Web Interface
 
 The repository also includes a thin Flask web layer that reuses the same backend pipeline as the CLI.
@@ -198,6 +207,17 @@ Local startup:
 ```powershell
 flask --app src.web.app run --host 127.0.0.1 --port 5000
 ```
+
+Then open `http://127.0.0.1:5000`.
+
+Web flow:
+
+1. Upload a `.vcf` or `.vcf.gz`.
+2. Select `GRCh37` or `GRCh38`.
+3. Optionally enable PharmGKB enrichment.
+4. Either open the browser report or go straight to `html`, `json`, or `md` export.
+
+For deployment-specific details, see [DEPLOYMENT.md](C:/Code/GitPortfolio/variant-review-workbench/DEPLOYMENT.md).
 
 Hosted/runtime environment variables:
 
@@ -231,6 +251,28 @@ Recommended hosted disk layout:
 - `/healthz` is intended to return healthy only after the configured ClinVar source files and cache parent directories exist on disk
 
 ## Example Usage
+
+### Fastest Local Review Paths
+
+CLI reviewer path:
+
+```powershell
+python -m src.cli `
+  --input data\demo.vcf `
+  --assembly GRCh38 `
+  --variant-summary data\clinvar\raw\variant_summary.txt.gz `
+  --conflict-summary data\clinvar\raw\summary_of_conflicting_interpretations.txt `
+  --submission-summary data\clinvar\raw\submission_summary.txt.gz `
+  --out-dir outputs\demo_run
+```
+
+Web reviewer path:
+
+```powershell
+flask --app src.web.app run --host 127.0.0.1 --port 5000
+```
+
+Then submit `data\demo.vcf` through the homepage.
 
 ### Base ClinVar Run
 
@@ -480,6 +522,8 @@ The implemented system currently has coverage for:
 - report generation
 - CLI orchestration
 - PharmGKB caching, failure handling, and integration
+- web route behavior
+- web job execution and failure handling
 
 ## Current Status
 
@@ -494,7 +538,15 @@ Implemented and tested:
 
 Current automated test count:
 
-- `66` passing unit tests
+- `74` passing unit tests
+
+## Reviewer Notes
+
+If you are reviewing this repository quickly:
+
+1. Open the homepage or the generated demo report first.
+2. Check `summary.json` and `prioritized_variants.json` to confirm the machine-readable contract.
+3. Read [DEPLOYMENT.md](C:/Code/GitPortfolio/variant-review-workbench/DEPLOYMENT.md) if you want the hosted shape rather than the local CLI shape.
 
 ## Limitations
 
