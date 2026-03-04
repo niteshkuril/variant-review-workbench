@@ -4,8 +4,8 @@
   <section class="hero">
     <h1>Results Shell</h1>
     <p>
-      This page now uses the web job model. Real pipeline execution is still not wired yet, but submissions are
-      created, tracked, and exposed through a deterministic status endpoint.
+      This page reuses the generated report artifact from the shared backend pipeline. The browser view is not a
+      second report implementation.
     </p>
     <div class="meta-card">
       <strong>Run identifier</strong>
@@ -28,6 +28,7 @@
       <p>{{ job.result.message }}</p>
       <p>Uploaded VCF: <span class="mono">{{ job.result.uploaded_vcf_path }}</span></p>
       <p>Run output directory: <span class="mono">{{ job.result.output_dir }}</span></p>
+      <p>Summary artifact: <span class="mono">{{ job.result.summary_json_path }}</span></p>
     {% elif job.error %}
       <p>Job failed: <span class="mono">{{ job.error }}</span></p>
     {% else %}
@@ -35,12 +36,23 @@
     {% endif %}
   </section>
 
-  <section class="panel" style="margin-top: 24px; padding: 28px;">
-    <h2>Planned result experience</h2>
-    <ul>
-      <li>Rendered analyst-facing report from the shared reporting pipeline</li>
-      <li>Visible provenance and research-use disclaimer</li>
-      <li>Export control for JSON, HTML, and Markdown artifacts</li>
-    </ul>
-  </section>
+  {% if job.result and job.status == "succeeded" %}
+    <section class="panel" style="margin-top: 24px; padding: 16px;">
+      <h2 style="padding: 12px 12px 0;">Report Preview</h2>
+      <iframe
+        title="Variant Review Report"
+        src="{{ url_for('run_report', run_id=run_id) }}"
+        style="width: 100%; min-height: 960px; border: 0; border-radius: 16px; background: white;"
+      ></iframe>
+    </section>
+  {% else %}
+    <section class="panel" style="margin-top: 24px; padding: 28px;">
+      <h2>Planned result experience</h2>
+      <ul>
+        <li>Rendered analyst-facing report from the shared reporting pipeline</li>
+        <li>Visible provenance and research-use disclaimer</li>
+        <li>Export control for JSON, HTML, and Markdown artifacts</li>
+      </ul>
+    </section>
+  {% endif %}
 {% endblock %}

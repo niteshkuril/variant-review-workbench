@@ -1,13 +1,15 @@
-"""Minimal web application skeleton for variant-review-workbench."""
+"""Web application entrypoint for variant-review-workbench."""
 
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
-from time import sleep
 from uuid import uuid4
 
-from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, url_for
 
+from ..app_service import PipelineUsageError, run_pipeline_with_details
+from ..models import GenomeAssembly
 from .jobs import JobRunner, JobStore
 from .storage import (
     UploadValidationError,
@@ -17,27 +19,74 @@ from .storage import (
     save_uploaded_vcf,
 )
 
-def _build_placeholder_result(
+
+def _parse_assembly(value: str) -> GenomeAssembly:
+    """Parse a web assembly form value into a supported enum."""
+    normalized = value.strip()
+    if normalized == GenomeAssembly.GRCH37.value:
+        return GenomeAssembly.GRCH37
+    if normalized == GenomeAssembly.GRCH38.value:
+        return GenomeAssembly.GRCH38
+    raise PipelineUsageError("assembly must be either 'GRCh37' or 'GRCh38'")
+
+
+def _build_pipeline_task_args(
+    *,
+    uploaded_vcf_path: Path,
+    output_dir: Path,
+    assembly: str,
+    pharmgkb_enabled: bool,
+    app: Flask,
+) -> argparse.Namespace:
+    """Build the shared pipeline argument namespace for a web-submitted run."""
+    return argparse.Namespace(
+        input=str(uploaded_vcf_path),
+        assembly=_parse_assembly(assembly),
+        variant_summary=app.config["CLINVAR_VARIANT_SUMMARY"],
+        conflict_summary=app.config["CLINVAR_CONFLICT_SUMMARY"],
+        submission_summary=app.config["CLINVAR_SUBMISSION_SUMMARY"],
+        clinvar_cache_db=app.config["CLINVAR_CACHE_DB"],
+        disable_clinvar_cache=bool(app.config["DISABLE_CLINVAR_CACHE"]),
+        out_dir=str(output_dir),
+        enable_pharmgkb=pharmgkb_enabled,
+    )
+
+
+def _run_pipeline_job(
     *,
     job_id: str,
     assembly: str,
     mode: str,
-    export_format: str | None,
     pharmgkb_enabled: bool,
-    uploaded_vcf_path: str,
-    output_dir: str,
-) -> dict[str, str | bool | None]:
-    """Return the placeholder job payload until real pipeline execution is wired in."""
-    sleep(0.01)
+    export_format: str | None,
+    uploaded_vcf_path: Path,
+    output_dir: Path,
+    app: Flask,
+) -> dict[str, object]:
+    """Execute the shared reporting pipeline for one web-submitted run."""
+    pipeline_args = _build_pipeline_task_args(
+        uploaded_vcf_path=uploaded_vcf_path,
+        output_dir=output_dir,
+        assembly=assembly,
+        pharmgkb_enabled=pharmgkb_enabled,
+        app=app,
+    )
+    outputs, run_metadata = run_pipeline_with_details(pipeline_args)
     return {
         "job_id": job_id,
         "assembly": assembly,
         "mode": mode,
         "export_format": export_format,
         "pharmgkb_enabled": pharmgkb_enabled,
-        "uploaded_vcf_path": uploaded_vcf_path,
-        "output_dir": output_dir,
-        "message": "Execution is still stubbed. Phase 4 now stores uploads in isolated run workspaces while Phase 5 wires in real reporting.",
+        "uploaded_vcf_path": str(uploaded_vcf_path),
+        "output_dir": str(output_dir),
+        "report_html_path": str(outputs["report_html"]),
+        "summary_json_path": str(outputs["summary_json"]),
+        "prioritized_variants_json_path": str(outputs["prioritized_variants_json"]),
+        "annotated_variants_csv_path": str(outputs["annotated_variants_csv"]),
+        "run_metadata_json_path": str(outputs["run_metadata_json"]),
+        "summary": run_metadata.statistics.model_dump(mode="json"),
+        "message": "Pipeline completed successfully and the generated report is available below.",
     }
 
 
@@ -53,6 +102,11 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.config["UPLOAD_ROOT"] = str(project_root / ".web_runtime" / "uploads")
     app.config["RUN_OUTPUT_ROOT"] = str(project_root / ".web_runtime" / "runs")
     app.config["RUN_RETENTION_HOURS"] = 24
+    app.config["CLINVAR_VARIANT_SUMMARY"] = str(project_root / "data" / "clinvar" / "raw" / "variant_summary.txt.gz")
+    app.config["CLINVAR_CONFLICT_SUMMARY"] = str(project_root / "data" / "clinvar" / "raw" / "summary_of_conflicting_interpretations.txt")
+    app.config["CLINVAR_SUBMISSION_SUMMARY"] = str(project_root / "data" / "clinvar" / "raw" / "submission_summary.txt.gz")
+    app.config["CLINVAR_CACHE_DB"] = str(project_root / "data" / "clinvar" / "processed" / "clinvar_lookup_cache.sqlite3")
+    app.config["DISABLE_CLINVAR_CACHE"] = False
     if test_config:
         app.config.update(test_config)
 
@@ -126,14 +180,15 @@ def create_app(test_config: dict | None = None) -> Flask:
             mode=mode,
             export_format=export_format,
             metadata=metadata,
-            task=lambda: _build_placeholder_result(
+            task=lambda: _run_pipeline_job(
                 job_id=job_id,
                 assembly=assembly,
                 mode=mode,
-                export_format=export_format,
                 pharmgkb_enabled=pharmgkb_enabled,
-                uploaded_vcf_path=str(workspace.uploaded_vcf_path),
-                output_dir=str(workspace.output_dir),
+                export_format=export_format,
+                uploaded_vcf_path=workspace.uploaded_vcf_path,
+                output_dir=workspace.output_dir,
+                app=app,
             ),
         )
         return redirect(url_for("results", run_id=job_id))
@@ -152,6 +207,17 @@ def create_app(test_config: dict | None = None) -> Flask:
             export_format=job.export_format,
             job=job,
         )
+
+    @app.get("/runs/<run_id>/report")
+    def run_report(run_id: str) -> Response:
+        job = app.extensions["job_store"].get_job(run_id)
+        if job is None or job.status != "succeeded" or not job.result:
+            abort(404)
+
+        report_path = Path(str(job.result["report_html_path"]))
+        if not report_path.exists():
+            abort(404)
+        return Response(report_path.read_text(encoding="utf-8"), mimetype="text/html")
 
     @app.get("/runs/<run_id>/status")
     def run_status(run_id: str) -> tuple[object, int]:
