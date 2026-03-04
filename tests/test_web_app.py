@@ -222,9 +222,12 @@ class WebAppTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertIn("/runs/export-", response.headers["Location"])
+        self.assertIn("/export/md", response.headers["Location"])
+
         redirected = self.client.get(response.headers["Location"])
         self.assertEqual(redirected.status_code, 200)
-        self.assertIn(b"export_only", redirected.data)
+        self.assertIn("text/markdown", redirected.content_type)
+        self.assertIn(b"# Variant Review Report", redirected.data)
 
     def test_results_page_renders_placeholder(self) -> None:
         create_response = self.client.post(
@@ -245,6 +248,9 @@ class WebAppTests(unittest.TestCase):
         self.assertIn(b"Pipeline completed successfully", response.data)
         self.assertIn(b"Uploaded VCF:", response.data)
         self.assertIn(b"Report Preview", response.data)
+        self.assertIn(b"Export HTML", response.data)
+        self.assertIn(b"Export JSON", response.data)
+        self.assertIn(b"Export Markdown", response.data)
 
     def test_status_endpoint_returns_job_result(self) -> None:
         create_response = self.client.post(
@@ -367,6 +373,31 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response.content_type)
         self.assertIn(b"Variant Review Report", response.data)
+
+    def test_export_route_serves_generated_json_and_markdown(self) -> None:
+        create_response = self.client.post(
+            "/runs",
+            data={
+                "assembly": "GRCh38",
+                "export_format": "json",
+                "vcf_file": (io.BytesIO(self._demo_vcf_bytes()), "demo.vcf"),
+            },
+            content_type="multipart/form-data",
+        )
+        run_id = create_response.headers["Location"].rstrip("/").split("/")[-1]
+
+        json_response = self.client.get(f"/runs/{run_id}/export/json")
+        markdown_response = self.client.get(f"/runs/{run_id}/export/md")
+
+        self.assertEqual(json_response.status_code, 200)
+        self.assertIn("application/json", json_response.content_type)
+        self.assertIn(b'"report_title": "Variant Review Report"', json_response.data)
+        self.assertIn(b'"summary"', json_response.data)
+
+        self.assertEqual(markdown_response.status_code, 200)
+        self.assertIn("text/markdown", markdown_response.content_type)
+        self.assertIn(b"# Variant Review Report", markdown_response.data)
+        self.assertIn(b"## Top Findings", markdown_response.data)
 
 
 if __name__ == "__main__":

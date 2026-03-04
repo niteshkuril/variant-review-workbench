@@ -15,6 +15,13 @@
       {% if job.export_format %}
         <p>Requested export preference: <span class="mono">{{ job.export_format }}</span></p>
       {% endif %}
+      {% if job.result and job.status == "succeeded" %}
+        <div class="actions" style="margin-top: 14px;">
+          <a class="button" href="{{ url_for('run_export', run_id=run_id, export_format='html') }}">Export HTML</a>
+          <a class="button secondary" href="{{ url_for('run_export', run_id=run_id, export_format='json') }}">Export JSON</a>
+          <a class="button secondary" href="{{ url_for('run_export', run_id=run_id, export_format='md') }}">Export Markdown</a>
+        </div>
+      {% endif %}
     </div>
   </section>
 
@@ -29,6 +36,8 @@
       <p>Uploaded VCF: <span class="mono">{{ job.result.uploaded_vcf_path }}</span></p>
       <p>Run output directory: <span class="mono">{{ job.result.output_dir }}</span></p>
       <p>Summary artifact: <span class="mono">{{ job.result.summary_json_path }}</span></p>
+      <p>Report JSON export: <span class="mono">{{ job.result.report_json_path }}</span></p>
+      <p>Report Markdown export: <span class="mono">{{ job.result.report_markdown_path }}</span></p>
     {% elif job.error %}
       <p>Job failed: <span class="mono">{{ job.error }}</span></p>
     {% else %}

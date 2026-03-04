@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import json
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -31,6 +32,17 @@ LIMITATIONS_NOTES = [
     "Unmatched variants are not interpreted automatically and should be reviewed manually.",
     "ClinVar significance labels and ranking output should be interpreted in the context of the source snapshot date.",
 ]
+
+
+def _serialize_sources(sources: list[object]) -> list[dict[str, object]]:
+    """Convert provenance models or mapping-like objects into JSON-safe dicts."""
+    serialized: list[dict[str, object]] = []
+    for source in sources:
+        if hasattr(source, "model_dump"):
+            serialized.append(source.model_dump(mode="json"))
+        elif isinstance(source, dict):
+            serialized.append(dict(source))
+    return serialized
 
 
 def _build_environment() -> Environment:
@@ -188,6 +200,108 @@ def build_report_context(
         "limitations_notes": LIMITATIONS_NOTES,
         "sources": run_metadata.sources if run_metadata is not None else [],
     }
+
+
+def build_report_export_payload(report_context: dict[str, object]) -> dict[str, object]:
+    """Build a JSON-safe report export payload from shared report context."""
+    return {
+        "report_title": report_context["report_title"],
+        "generated_at": report_context["generated_at"],
+        "assembly": report_context["assembly"],
+        "input_path": report_context["input_path"],
+        "summary": report_context["summary"],
+        "summary_artifact": report_context["summary_artifact"],
+        "top_findings": report_context["top_findings"],
+        "conflict_rows": report_context["conflict_rows"],
+        "variant_rows": report_context["variant_rows"],
+        "methods_notes": report_context["methods_notes"],
+        "limitations_notes": report_context["limitations_notes"],
+        "sources": _serialize_sources(list(report_context.get("sources", []))),
+    }
+
+
+def render_markdown_report_from_context(report_context: dict[str, object]) -> str:
+    """Render a Markdown report from shared report context."""
+    payload = build_report_export_payload(report_context)
+    summary = payload["summary"]
+    assert isinstance(summary, dict)
+    lines = [
+        f"# {payload['report_title']}",
+        "",
+        f"- Generated: {payload['generated_at'] or 'Unspecified'}",
+        f"- Assembly: {payload['assembly'] or 'Unspecified'}",
+        f"- Input: {payload['input_path'] or 'Unspecified'}",
+        "",
+        "## Summary",
+        "",
+        f"- Total variants: {summary['variant_count']}",
+        f"- ClinVar matched: {summary['clinvar_matched_count']}",
+        f"- ClinVar unmatched: {summary['clinvar_unmatched_count']}",
+        f"- Conflict flagged: {summary['conflict_count']}",
+        f"- PharmGKB enriched: {summary['pharmgkb_count']}",
+        "",
+        "## Top Findings",
+        "",
+    ]
+    top_findings = payload["top_findings"]
+    assert isinstance(top_findings, list)
+    for row in top_findings:
+        assert isinstance(row, dict)
+        lines.extend(
+            [
+                f"### {row['gene']} ({row['locus']})",
+                f"- Priority tier: {row['priority_tier']}",
+                f"- Priority score: {row['priority_score']}",
+                f"- ClinVar significance: {row['clinical_significance']}",
+                f"- Review status: {row['review_status']}",
+                f"- Conditions: {row['condition_names']}",
+                f"- Conflict: {row['conflict']}",
+                "",
+            ]
+        )
+
+    lines.extend(["## Methods", ""])
+    methods_notes = payload["methods_notes"]
+    assert isinstance(methods_notes, list)
+    lines.extend(f"- {note}" for note in methods_notes)
+    lines.extend(["", "## Limitations", ""])
+    limitation_notes = payload["limitations_notes"]
+    assert isinstance(limitation_notes, list)
+    lines.extend(f"- {note}" for note in limitation_notes)
+    lines.extend(["", "## Sources", ""])
+    sources = payload["sources"]
+    assert isinstance(sources, list)
+    if sources:
+        for source in sources:
+            assert isinstance(source, dict)
+            location = source.get("source_path") or source.get("source_url") or "Unspecified"
+            lines.append(f"- {source.get('source_name', 'Source')}: {location}")
+    else:
+        lines.append("- No source metadata recorded.")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_markdown_report(
+    ranked_variants: list[RankedVariant],
+    run_metadata: RunMetadata | None = None,
+) -> str:
+    """Render a Markdown report from ranked variants."""
+    return render_markdown_report_from_context(build_report_context(ranked_variants, run_metadata=run_metadata))
+
+
+def write_markdown_report(output_path: Path, report_context: dict[str, object]) -> Path:
+    """Write a Markdown report to disk from shared report context."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(render_markdown_report_from_context(report_context), encoding="utf-8")
+    return output_path
+
+
+def write_report_export_json(output_path: Path, report_context: dict[str, object]) -> Path:
+    """Write a JSON report export to disk from shared report context."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(build_report_export_payload(report_context), indent=2), encoding="utf-8")
+    return output_path
 
 
 def render_html_report(

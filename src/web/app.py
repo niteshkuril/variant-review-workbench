@@ -8,8 +8,9 @@ from uuid import uuid4
 
 from flask import Flask, Response, abort, jsonify, redirect, render_template, request, url_for
 
-from ..app_service import PipelineUsageError, run_pipeline_with_details
+from ..app_service import PipelineUsageError, run_pipeline_with_result
 from ..models import GenomeAssembly
+from ..report_builder import write_markdown_report, write_report_export_json
 from .jobs import JobRunner, JobStore
 from .storage import (
     UploadValidationError,
@@ -71,7 +72,9 @@ def _run_pipeline_job(
         pharmgkb_enabled=pharmgkb_enabled,
         app=app,
     )
-    outputs, run_metadata = run_pipeline_with_details(pipeline_args)
+    pipeline_result = run_pipeline_with_result(pipeline_args)
+    markdown_path = write_markdown_report(output_dir / "report.md", pipeline_result.report_context)
+    report_json_path = write_report_export_json(output_dir / "report.json", pipeline_result.report_context)
     return {
         "job_id": job_id,
         "assembly": assembly,
@@ -80,14 +83,31 @@ def _run_pipeline_job(
         "pharmgkb_enabled": pharmgkb_enabled,
         "uploaded_vcf_path": str(uploaded_vcf_path),
         "output_dir": str(output_dir),
-        "report_html_path": str(outputs["report_html"]),
-        "summary_json_path": str(outputs["summary_json"]),
-        "prioritized_variants_json_path": str(outputs["prioritized_variants_json"]),
-        "annotated_variants_csv_path": str(outputs["annotated_variants_csv"]),
-        "run_metadata_json_path": str(outputs["run_metadata_json"]),
-        "summary": run_metadata.statistics.model_dump(mode="json"),
+        "report_html_path": str(pipeline_result.outputs["report_html"]),
+        "report_markdown_path": str(markdown_path),
+        "report_json_path": str(report_json_path),
+        "summary_json_path": str(pipeline_result.outputs["summary_json"]),
+        "prioritized_variants_json_path": str(pipeline_result.outputs["prioritized_variants_json"]),
+        "annotated_variants_csv_path": str(pipeline_result.outputs["annotated_variants_csv"]),
+        "run_metadata_json_path": str(pipeline_result.outputs["run_metadata_json"]),
+        "summary": pipeline_result.run_metadata.statistics.model_dump(mode="json"),
         "message": "Pipeline completed successfully and the generated report is available below.",
     }
+
+
+def _resolve_export_path(job_result: dict[str, object], export_format: str) -> tuple[Path, str, str]:
+    """Resolve a supported export format to a file path, mimetype, and download name."""
+    mapping = {
+        "html": ("report_html_path", "text/html; charset=utf-8", "report.html"),
+        "md": ("report_markdown_path", "text/markdown; charset=utf-8", "report.md"),
+        "json": ("report_json_path", "application/json; charset=utf-8", "report.json"),
+    }
+    if export_format not in mapping:
+        raise PipelineUsageError("export format must be one of: html, md, json")
+
+    field_name, mimetype, download_name = mapping[export_format]
+    export_path = Path(str(job_result[field_name]))
+    return export_path, mimetype, download_name
 
 
 def create_app(test_config: dict | None = None) -> Flask:
@@ -191,6 +211,8 @@ def create_app(test_config: dict | None = None) -> Flask:
                 app=app,
             ),
         )
+        if mode == "export_only" and app.config["JOB_EXECUTION_MODE"] == "inline":
+            return redirect(url_for("run_export", run_id=job_id, export_format=export_format))
         return redirect(url_for("results", run_id=job_id))
 
     @app.get("/runs/<run_id>")
@@ -218,6 +240,24 @@ def create_app(test_config: dict | None = None) -> Flask:
         if not report_path.exists():
             abort(404)
         return Response(report_path.read_text(encoding="utf-8"), mimetype="text/html")
+
+    @app.get("/runs/<run_id>/export/<export_format>")
+    def run_export(run_id: str, export_format: str) -> Response:
+        job = app.extensions["job_store"].get_job(run_id)
+        if job is None or job.status != "succeeded" or not job.result:
+            abort(404)
+
+        try:
+            export_path, mimetype, download_name = _resolve_export_path(job.result, export_format)
+        except PipelineUsageError:
+            abort(404)
+
+        if not export_path.exists():
+            abort(404)
+
+        response = Response(export_path.read_text(encoding="utf-8"), mimetype=mimetype)
+        response.headers["Content-Disposition"] = f'attachment; filename="{download_name}"'
+        return response
 
     @app.get("/runs/<run_id>/status")
     def run_status(run_id: str) -> tuple[object, int]:

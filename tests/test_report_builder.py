@@ -16,6 +16,7 @@ from src.models import (
     RunMetadata,
 )
 from src.report_builder import build_report_context, build_variant_export_records, render_html_report, write_html_report
+from src.report_builder import build_report_export_payload, render_markdown_report, write_markdown_report, write_report_export_json
 
 
 def build_ranked_variant(
@@ -142,6 +143,38 @@ class ReportBuilderTests(unittest.TestCase):
 
         self.assertIn("Variant Review Report", html)
         self.assertIn("TP53", html)
+
+    def test_markdown_and_json_exports_use_shared_report_context(self) -> None:
+        ranked_variants = [
+            build_ranked_variant("record-1", "TP53", 43045702, ReviewPriorityTier.HIGH_REVIEW_PRIORITY, 17.5, conflict=True),
+        ]
+        metadata = RunMetadata(
+            input_path="data/demo.vcf",
+            output_dir="outputs/demo",
+            assembly=GenomeAssembly.GRCH38,
+            sources=[DataProvenance(source_name="ClinVar variant summary", source_kind="file", source_path="data/clinvar/raw/variant_summary.txt.gz")],
+        )
+        context = build_report_context(ranked_variants, metadata)
+
+        payload = build_report_export_payload(context)
+        markdown = render_markdown_report(ranked_variants, metadata)
+
+        self.assertEqual(payload["report_title"], "Variant Review Report")
+        self.assertEqual(payload["summary"]["clinvar_matched_count"], 1)
+        self.assertIn("# Variant Review Report", markdown)
+        self.assertIn("## Top Findings", markdown)
+        self.assertIn("TP53", markdown)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            markdown_path = Path(tmpdir) / "report.md"
+            json_path = Path(tmpdir) / "report.json"
+            write_markdown_report(markdown_path, context)
+            write_report_export_json(json_path, context)
+
+            self.assertTrue(markdown_path.exists())
+            self.assertTrue(json_path.exists())
+            self.assertIn("Variant Review Report", markdown_path.read_text(encoding="utf-8"))
+            self.assertIn('"report_title": "Variant Review Report"', json_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

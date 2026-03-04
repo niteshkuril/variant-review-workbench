@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from .annotator import annotate_variants
@@ -22,6 +23,15 @@ from .vcf_parser import parse_vcf
 
 class PipelineUsageError(ValueError):
     """Raised when execution inputs are syntactically valid but operationally unusable."""
+
+
+@dataclass(slots=True)
+class PipelineRunResult:
+    """Structured result returned by the shared pipeline service."""
+
+    outputs: dict[str, Path]
+    run_metadata: RunMetadata
+    report_context: dict[str, object]
 
 
 def build_run_metadata(args: argparse.Namespace, output_dir: Path, index_sources: list) -> RunMetadata:
@@ -95,8 +105,8 @@ def write_csv(output_path: Path, rows: list[dict[str, object]]) -> Path:
     return output_path
 
 
-def run_pipeline_with_details(args: argparse.Namespace) -> tuple[dict[str, Path], RunMetadata]:
-    """Execute the local ClinVar-first pipeline and return outputs with run metadata."""
+def run_pipeline_with_result(args: argparse.Namespace) -> PipelineRunResult:
+    """Execute the local ClinVar-first pipeline and return structured run details."""
     validate_runtime_paths(args)
     input_path = Path(args.input)
     output_dir = Path(args.out_dir)
@@ -148,7 +158,13 @@ def run_pipeline_with_details(args: argparse.Namespace) -> tuple[dict[str, Path]
         "run_metadata_json": write_json(output_dir / "run_metadata.json", run_metadata.model_dump(mode="json")),
         "report_html": write_html_report(output_dir / "report.html", ranked_variants, run_metadata=run_metadata),
     }
-    return outputs, run_metadata
+    return PipelineRunResult(outputs=outputs, run_metadata=run_metadata, report_context=report_context)
+
+
+def run_pipeline_with_details(args: argparse.Namespace) -> tuple[dict[str, Path], RunMetadata]:
+    """Execute the local ClinVar-first pipeline and return outputs with run metadata."""
+    result = run_pipeline_with_result(args)
+    return result.outputs, result.run_metadata
 
 
 def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
