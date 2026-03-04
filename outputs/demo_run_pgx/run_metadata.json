@@ -1,0 +1,71 @@
+{
+  "project_name": "variant-review-workbench",
+  "run_started_at": "2026-03-04T08:13:28.616160Z",
+  "input_path": "data\\demo.vcf",
+  "output_dir": "outputs\\demo_run_pgx",
+  "assembly": "GRCh38",
+  "pharmgkb_enabled": true,
+  "sources": [
+    {
+      "source_name": "ClinVar variant summary",
+      "source_kind": "file",
+      "source_path": "data\\clinvar\\raw\\variant_summary.txt.gz",
+      "source_url": null,
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.592967Z"
+    },
+    {
+      "source_name": "ClinVar processed cache",
+      "source_kind": "file",
+      "source_path": "data\\clinvar\\processed\\clinvar_lookup_cache.sqlite3",
+      "source_url": null,
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.592991Z"
+    },
+    {
+      "source_name": "ClinVar conflicting interpretations",
+      "source_kind": "file",
+      "source_path": "data\\clinvar\\raw\\summary_of_conflicting_interpretations.txt",
+      "source_url": null,
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.596537Z"
+    },
+    {
+      "source_name": "ClinVar submission summary",
+      "source_kind": "file",
+      "source_path": "data\\clinvar\\raw\\submission_summary.txt.gz",
+      "source_url": null,
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.600257Z"
+    },
+    {
+      "source_name": "PharmGKB API",
+      "source_kind": "api",
+      "source_path": null,
+      "source_url": "https://api.pharmgkb.org/v1",
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.616191Z"
+    },
+    {
+      "source_name": "PharmGKB cache",
+      "source_kind": "file",
+      "source_path": "data\\pharmgkb\\cache",
+      "source_url": "https://api.pharmgkb.org/",
+      "release_label": null,
+      "downloaded_at": null,
+      "accessed_at": "2026-03-04T08:13:28.616199Z"
+    }
+  ],
+  "statistics": {
+    "input_variant_count": 4,
+    "clinvar_matched_count": 4,
+    "clinvar_unmatched_count": 0,
+    "conflict_flagged_count": 3,
+    "pharmgkb_enriched_count": 4
+  }
+}

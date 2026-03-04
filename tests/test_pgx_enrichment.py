@@ -246,6 +246,8 @@ class PharmGKBEnrichmentTests(unittest.TestCase):
 
         self.assertTrue(metadata["pharmgkb_enabled"])
         self.assertEqual(metadata["statistics"]["pharmgkb_enriched_count"], 1)
+        self.assertTrue(any(source["source_name"] == "PharmGKB API" for source in metadata["sources"]))
+        self.assertTrue(any(source["source_name"] == "PharmGKB cache" for source in metadata["sources"]))
         self.assertTrue(prioritized["records"][0]["pharmgkb_matched"])
         self.assertIn("pharmgkb_enriched", prioritized["records"][0]["flags"])
 

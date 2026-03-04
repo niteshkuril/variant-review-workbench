@@ -187,9 +187,13 @@ def run_pipeline(args: argparse.Namespace) -> dict[str, Path]:
     if args.enable_pharmgkb:
         pharmgkb_client = PharmGKBClient()
         annotated_variants = enrich_annotated_variants(annotated_variants, pharmgkb_client)
+    else:
+        pharmgkb_client = None
     ranked_variants = rank_variants(annotated_variants)
 
     run_metadata = _build_run_metadata(args, output_dir, clinvar_index.provenance)
+    if pharmgkb_client is not None:
+        run_metadata.sources.extend(pharmgkb_client.provenance)
     run_metadata.statistics.input_variant_count = len(input_variants)
     run_metadata.statistics.clinvar_matched_count = sum(1 for item in annotated_variants if item.has_clinvar_match)
     run_metadata.statistics.clinvar_unmatched_count = len(annotated_variants) - run_metadata.statistics.clinvar_matched_count

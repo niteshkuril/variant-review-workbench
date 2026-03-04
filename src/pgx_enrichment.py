@@ -10,7 +10,7 @@ from typing import Any
 
 import requests
 
-from .models import AnnotatedVariant, PharmGKBAnnotation
+from .models import AnnotatedVariant, DataProvenance, PharmGKBAnnotation
 
 PHARMGKB_API_BASE = "https://api.pharmgkb.org/v1"
 PHARMGKB_DOCS_URL = "https://api.pharmgkb.org/"
@@ -108,6 +108,23 @@ class PharmGKBClient:
     def fetch_guideline_annotations_for_gene(self, symbol: str) -> tuple[list[dict[str, Any]], bool]:
         """Query PharmGKB guideline annotations by gene symbol."""
         return self._get("guideline_annotations", {"relatedGenes.symbol": symbol})
+
+    @property
+    def provenance(self) -> list[DataProvenance]:
+        """Return reproducibility metadata for the PharmGKB integration."""
+        return [
+            DataProvenance(
+                source_name="PharmGKB API",
+                source_kind="api",
+                source_url=PHARMGKB_API_BASE,
+            ),
+            DataProvenance(
+                source_name="PharmGKB cache",
+                source_kind="file",
+                source_path=str(self.cache_dir),
+                source_url=PHARMGKB_DOCS_URL,
+            ),
+        ]
 
 
 def _extract_gene_symbol(annotated_variant: AnnotatedVariant) -> str | None:

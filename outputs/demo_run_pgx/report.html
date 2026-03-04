@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Variant Review Report</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --paper: #f8fbff;
+      --panel: #ffffff;
+      --accent: #0b6e4f;
+      --accent-soft: #d9f3ea;
+      --warn: #a61b1b;
+      --warn-soft: #fde8e8;
+      --shadow: rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f4f8fb 0%, #eef4f7 100%);
+    }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 18px 40px var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 2.2rem;
+      line-height: 1.1;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 20px 0 28px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 24px var(--shadow);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 18px 40px var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.35rem;
+    }
+
+    .finding {
+      border: 1px solid var(--line);
+      border-left: 6px solid var(--accent);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: var(--paper);
+    }
+
+    .finding.conflict {
+      border-left-color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .finding-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .badge.conflict {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    ul {
+      margin: 10px 0 0 18px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 760px) {
+      .hero, section { padding: 18px; }
+      table, thead, tbody, th, td, tr { display: block; }
+      thead { display: none; }
+      tr {
+        border-bottom: 1px solid var(--line);
+        padding: 12px 0;
+      }
+      td {
+        padding: 6px 0;
+        border-bottom: none;
+      }
+      td::before {
+        content: attr(data-label) ": ";
+        font-weight: 700;
+        color: var(--muted);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <h1>Variant Review Report</h1>
+      <div class="meta">
+<div>Input: data\demo.vcf</div><div>Assembly: GRCh38</div><div>Generated: 2026-03-04T08:13:28.616160+00:00</div>      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="metric-label">Total Variants</div>
+          <div class="metric-value">4</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">ClinVar Matched</div>
+          <div class="metric-value">4</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Conflict Flagged</div>
+          <div class="metric-value">3</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">High Review Priority</div>
+          <div class="metric-value">4</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">PharmGKB Enriched</div>
+          <div class="metric-value">4</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Top Findings</h2>
+          <article class="finding conflict">
+            <div class="finding-header">
+              <strong>BRCA1</strong>
+              <span>17:43106487 A>C</span>
+              <span class="badge">high_review_priority</span>
+                <span class="badge conflict">conflict</span>
+            </div>
+            <div><strong>ClinVar:</strong> Pathogenic | reviewed by expert panel</div>
+            <div><strong>Condition(s):</strong> Breast-ovarian cancer, familial, susceptibility to, 1, Hereditary breast ovarian cancer syndrome, Hereditary cancer-predisposing syndrome, Familial cancer of breast, Breast carcinoma, Breast neoplasm, Ovarian neoplasm, Breast and/or ovarian cancer, Breast-ovarian cancer, familial, susceptibility to, 1;Fanconi anemia, complementation group S;Pancreatic cancer, susceptibility to, 4, BRCA1-related cancer predisposition, Inherited ovarian cancer (without breast cancer)</div>
+            <div><strong>Priority Score:</strong> 21.0</div>
+            <ul>
+                <li>ClinVar significance 'Pathogenic' contributed 10.0 points.</li>
+                <li>ClinVar review strength (3 stars) contributed 4.5 points.</li>
+                <li>Conflicting ClinVar interpretations increased review priority by 2.5 points.</li>
+                <li>Input impact 'HIGH' contributed 3.0 points.</li>
+                <li>PharmGKB gene/variant PharmGKB context contributed 1.0 points.</li>
+            </ul>
+          </article>
+          <article class="finding conflict">
+            <div class="finding-header">
+              <strong>DPYD</strong>
+              <span>1:97450058 C>T</span>
+              <span class="badge">high_review_priority</span>
+                <span class="badge conflict">conflict</span>
+            </div>
+            <div><strong>ClinVar:</strong> drug response | reviewed by expert panel</div>
+            <div><strong>Condition(s):</strong> Dihydropyrimidine dehydrogenase deficiency, Fluorouracil response, Hirschsprung disease, susceptibility to, 1, fluorouracil response - Toxicity, fluorouracil response - Other, capecitabine response - Toxicity, tegafur response - Toxicity, Inborn genetic diseases, DPYD-related disorder, Sarcoma, Lymphoma, Malignant tumor of esophagus, Lung cancer, Clear cell carcinoma of kidney, Familial pancreatic carcinoma, Colon adenocarcinoma, Colorectal cancer, Familial cancer of breast, Ovarian cancer, Thyroid cancer, nonmedullary, 1, Melanoma, Cholangiocarcinoma, Acute myeloid leukemia, Gastric cancer, Ovarian serous cystadenocarcinoma, Malignant tumor of urinary bladder, Nonpapillary renal cell carcinoma, Cervical cancer</div>
+            <div><strong>Priority Score:</strong> 18.0</div>
+            <ul>
+                <li>ClinVar significance 'drug response' contributed 3.0 points.</li>
+                <li>ClinVar review strength (3 stars) contributed 4.5 points.</li>
+                <li>Conflicting ClinVar interpretations increased review priority by 2.5 points.</li>
+                <li>Input impact 'HIGH' contributed 3.0 points.</li>
+                <li>PharmGKB clinical annotations + guideline annotations + drug associations contributed 5.0 points.</li>
+            </ul>
+          </article>
+          <article class="finding">
+            <div class="finding-header">
+              <strong>APC</strong>
+              <span>5:112827199 T>G</span>
+              <span class="badge">high_review_priority</span>
+            </div>
+            <div><strong>ClinVar:</strong> Pathogenic | criteria provided, multiple submitters, no conflicts</div>
+            <div><strong>Condition(s):</strong> Familial adenomatous polyposis 1, Hereditary cancer-predisposing syndrome</div>
+            <div><strong>Priority Score:</strong> 17.0</div>
+            <ul>
+                <li>ClinVar significance 'Pathogenic' contributed 10.0 points.</li>
+                <li>ClinVar review strength (2 stars) contributed 3.0 points.</li>
+                <li>Input impact 'HIGH' contributed 3.0 points.</li>
+                <li>PharmGKB gene/variant PharmGKB context contributed 1.0 points.</li>
+            </ul>
+          </article>
+          <article class="finding conflict">
+            <div class="finding-header">
+              <strong>TP53</strong>
+              <span>17:7674208 A>G</span>
+              <span class="badge">high_review_priority</span>
+                <span class="badge conflict">conflict</span>
+            </div>
+            <div><strong>ClinVar:</strong> Conflicting classifications of pathogenicity | criteria provided, conflicting classifications</div>
+            <div><strong>Condition(s):</strong> Li-Fraumeni syndrome 1, Li-Fraumeni syndrome</div>
+            <div><strong>Priority Score:</strong> 13.0</div>
+            <ul>
+                <li>ClinVar significance 'Conflicting classifications of pathogenicity' contributed 6.0 points.</li>
+                <li>ClinVar review strength (0 stars) contributed 0.0 points.</li>
+                <li>Conflicting ClinVar interpretations increased review priority by 2.5 points.</li>
+                <li>Input impact 'MODERATE' contributed 1.5 points.</li>
+                <li>PharmGKB clinical annotations + drug associations contributed 3.0 points.</li>
+            </ul>
+          </article>
+    </section>
+
+    <section>
+      <h2>Conflict Review Queue</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Gene</th>
+              <th>Locus</th>
+              <th>ClinVar</th>
+              <th>Conditions</th>
+              <th>Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+              <tr>
+                <td data-label="Gene">BRCA1</td>
+                <td data-label="Locus">17:43106487 A>C</td>
+                <td data-label="ClinVar">Pathogenic</td>
+                <td data-label="Conditions">Breast-ovarian cancer, familial, susceptibility to, 1, Hereditary breast ovarian cancer syndrome, Hereditary cancer-predisposing syndrome, Familial cancer of breast, Breast carcinoma, Breast neoplasm, Ovarian neoplasm, Breast and/or ovarian cancer, Breast-ovarian cancer, familial, susceptibility to, 1;Fanconi anemia, complementation group S;Pancreatic cancer, susceptibility to, 4, BRCA1-related cancer predisposition, Inherited ovarian cancer (without breast cancer)</td>
+                <td data-label="Priority">high_review_priority (21.0)</td>
+              </tr>
+              <tr>
+                <td data-label="Gene">DPYD</td>
+                <td data-label="Locus">1:97450058 C>T</td>
+                <td data-label="ClinVar">drug response</td>
+                <td data-label="Conditions">Dihydropyrimidine dehydrogenase deficiency, Fluorouracil response, Hirschsprung disease, susceptibility to, 1, fluorouracil response - Toxicity, fluorouracil response - Other, capecitabine response - Toxicity, tegafur response - Toxicity, Inborn genetic diseases, DPYD-related disorder, Sarcoma, Lymphoma, Malignant tumor of esophagus, Lung cancer, Clear cell carcinoma of kidney, Familial pancreatic carcinoma, Colon adenocarcinoma, Colorectal cancer, Familial cancer of breast, Ovarian cancer, Thyroid cancer, nonmedullary, 1, Melanoma, Cholangiocarcinoma, Acute myeloid leukemia, Gastric cancer, Ovarian serous cystadenocarcinoma, Malignant tumor of urinary bladder, Nonpapillary renal cell carcinoma, Cervical cancer</td>
+                <td data-label="Priority">high_review_priority (18.0)</td>
+              </tr>
+              <tr>
+                <td data-label="Gene">TP53</td>
+                <td data-label="Locus">17:7674208 A>G</td>
+                <td data-label="ClinVar">Conflicting classifications of pathogenicity</td>
+                <td data-label="Conditions">Li-Fraumeni syndrome 1, Li-Fraumeni syndrome</td>
+                <td data-label="Priority">high_review_priority (13.0)</td>
+              </tr>
+          </tbody>
+        </table>
+    </section>
+
+    <section>
+      <h2>Variant Table</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Record</th>
+            <th>Gene</th>
+            <th>Locus</th>
+            <th>Tier</th>
+            <th>Score</th>
+            <th>ClinVar</th>
+            <th>Review</th>
+            <th>Conflict</th>
+            <th>PharmGKB</th>
+            <th>Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+              <td data-label="Record">record-3</td>
+              <td data-label="Gene">BRCA1</td>
+              <td data-label="Locus">17:43106487 A>C</td>
+              <td data-label="Tier">high_review_priority</td>
+              <td data-label="Score">21.0</td>
+              <td data-label="ClinVar">Pathogenic</td>
+              <td data-label="Review">reviewed by expert panel</td>
+              <td data-label="Conflict">Yes</td>
+              <td data-label="PharmGKB">Yes</td>
+              <td data-label="Flags">clinvar_matched, clinvar_conflict, clinvar_review_stars_3, submission_evidence_available, pharmgkb_enriched</td>
+            </tr>
+            <tr>
+              <td data-label="Record">record-1</td>
+              <td data-label="Gene">DPYD</td>
+              <td data-label="Locus">1:97450058 C>T</td>
+              <td data-label="Tier">high_review_priority</td>
+              <td data-label="Score">18.0</td>
+              <td data-label="ClinVar">drug response</td>
+              <td data-label="Review">reviewed by expert panel</td>
+              <td data-label="Conflict">Yes</td>
+              <td data-label="PharmGKB">Yes</td>
+              <td data-label="Flags">clinvar_matched, clinvar_conflict, clinvar_review_stars_3, submission_evidence_available, pharmgkb_enriched</td>
+            </tr>
+            <tr>
+              <td data-label="Record">record-2</td>
+              <td data-label="Gene">APC</td>
+              <td data-label="Locus">5:112827199 T>G</td>
+              <td data-label="Tier">high_review_priority</td>
+              <td data-label="Score">17.0</td>
+              <td data-label="ClinVar">Pathogenic</td>
+              <td data-label="Review">criteria provided, multiple submitters, no conflicts</td>
+              <td data-label="Conflict">No</td>
+              <td data-label="PharmGKB">Yes</td>
+              <td data-label="Flags">clinvar_matched, clinvar_review_stars_2, submission_evidence_available, pharmgkb_enriched</td>
+            </tr>
+            <tr>
+              <td data-label="Record">record-4</td>
+              <td data-label="Gene">TP53</td>
+              <td data-label="Locus">17:7674208 A>G</td>
+              <td data-label="Tier">high_review_priority</td>
+              <td data-label="Score">13.0</td>
+              <td data-label="ClinVar">Conflicting classifications of pathogenicity</td>
+              <td data-label="Review">criteria provided, conflicting classifications</td>
+              <td data-label="Conflict">Yes</td>
+              <td data-label="PharmGKB">Yes</td>
+              <td data-label="Flags">clinvar_matched, clinvar_conflict, clinvar_review_stars_0, submission_evidence_available, pharmgkb_enriched</td>
+            </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Methods</h2>
+      <ul>
+          <li>Input variants are normalized from VCF into one record per alternate allele.</li>
+          <li>ClinVar matching uses exact assembly-aware coordinate and allele lookup against the local snapshot.</li>
+          <li>Conflict and submission summaries are attached by ClinVar VariationID when available.</li>
+          <li>Ranking is heuristic and transparent; it prioritizes significance, review strength, conflicts, and optional PharmGKB context.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Limitations</h2>
+      <ul>
+          <li>This report is for research triage and educational review only, not clinical decision-making.</li>
+          <li>Exact matching can miss representation differences that require normalization beyond the current v1 pipeline.</li>
+          <li>Unmatched variants are not interpreted automatically and should be reviewed manually.</li>
+          <li>ClinVar significance labels and ranking output should be interpreted in the context of the source snapshot date.</li>
+      </ul>
+    </section>
+
+      <section>
+        <h2>Source Provenance</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Kind</th>
+              <th>Path</th>
+              <th>URL</th>
+            </tr>
+          </thead>
+          <tbody>
+              <tr>
+                <td data-label="Source">ClinVar variant summary</td>
+                <td data-label="Kind">file</td>
+                <td data-label="Path">data\clinvar\raw\variant_summary.txt.gz</td>
+                <td data-label="URL">Unspecified</td>
+              </tr>
+              <tr>
+                <td data-label="Source">ClinVar processed cache</td>
+                <td data-label="Kind">file</td>
+                <td data-label="Path">data\clinvar\processed\clinvar_lookup_cache.sqlite3</td>
+                <td data-label="URL">Unspecified</td>
+              </tr>
+              <tr>
+                <td data-label="Source">ClinVar conflicting interpretations</td>
+                <td data-label="Kind">file</td>
+                <td data-label="Path">data\clinvar\raw\summary_of_conflicting_interpretations.txt</td>
+                <td data-label="URL">Unspecified</td>
+              </tr>
+              <tr>
+                <td data-label="Source">ClinVar submission summary</td>
+                <td data-label="Kind">file</td>
+                <td data-label="Path">data\clinvar\raw\submission_summary.txt.gz</td>
+                <td data-label="URL">Unspecified</td>
+              </tr>
+              <tr>
+                <td data-label="Source">PharmGKB API</td>
+                <td data-label="Kind">api</td>
+                <td data-label="Path">Unspecified</td>
+                <td data-label="URL">https://api.pharmgkb.org/v1</td>
+              </tr>
+              <tr>
+                <td data-label="Source">PharmGKB cache</td>
+                <td data-label="Kind">file</td>
+                <td data-label="Path">data\pharmgkb\cache</td>
+                <td data-label="URL">https://api.pharmgkb.org/</td>
+              </tr>
+          </tbody>
+        </table>
+      </section>
+  </main>
+</body>
+</html>
