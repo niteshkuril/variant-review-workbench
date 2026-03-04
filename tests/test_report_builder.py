@@ -15,7 +15,7 @@ from src.models import (
     ReviewPriorityTier,
     RunMetadata,
 )
-from src.report_builder import build_report_context, render_html_report, write_html_report
+from src.report_builder import build_report_context, build_variant_export_records, render_html_report, write_html_report
 
 
 def build_ranked_variant(
@@ -67,6 +67,20 @@ def build_ranked_variant(
 
 
 class ReportBuilderTests(unittest.TestCase):
+    def test_build_variant_export_records_shapes_machine_readable_fields(self) -> None:
+        ranked_variants = [
+            build_ranked_variant("record-1", "TP53", 43045702, ReviewPriorityTier.HIGH_REVIEW_PRIORITY, 17.5, conflict=True),
+        ]
+
+        records = build_variant_export_records(ranked_variants)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0].record_id, "record-1")
+        self.assertEqual(records[0].input_gene, "TP53")
+        self.assertTrue(records[0].clinvar_matched)
+        self.assertTrue(records[0].conflict_flagged)
+        self.assertEqual(records[0].priority_tier, ReviewPriorityTier.HIGH_REVIEW_PRIORITY)
+
     def test_build_report_context_summarizes_ranked_variants(self) -> None:
         ranked_variants = [
             build_ranked_variant("record-1", "TP53", 43045702, ReviewPriorityTier.HIGH_REVIEW_PRIORITY, 17.5, conflict=True),

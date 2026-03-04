@@ -7,7 +7,13 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .models import RankedVariant, ReviewPriorityTier, RunMetadata, SummaryArtifact
+from .models import (
+    RankedVariant,
+    ReviewPriorityTier,
+    RunMetadata,
+    SummaryArtifact,
+    VariantExportRecord,
+)
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 REPORT_TEMPLATE_NAME = "report.html.j2"
@@ -93,6 +99,61 @@ def _build_variant_row(ranked_variant: RankedVariant) -> dict[str, object]:
         "flags": annotated.flags,
         "rationale": ranked_variant.ranking_rationale,
     }
+
+
+def build_variant_export_records(ranked_variants: list[RankedVariant]) -> list[VariantExportRecord]:
+    """Build stable machine-readable export records from ranked variants."""
+    records: list[VariantExportRecord] = []
+    for ranked_variant in ranked_variants:
+        annotated = ranked_variant.annotated_variant
+        input_variant = annotated.input_variant
+        clinvar = annotated.clinvar
+        pharmgkb = annotated.pharmgkb
+        submissions = clinvar.submissions
+
+        records.append(
+            VariantExportRecord(
+                record_id=input_variant.record_id,
+                assembly=input_variant.assembly,
+                chromosome=input_variant.chromosome,
+                position=input_variant.position,
+                reference_allele=input_variant.reference_allele,
+                alternate_allele=input_variant.alternate_allele,
+                locus=f"{input_variant.chromosome}:{input_variant.position} {input_variant.reference_allele}>{input_variant.alternate_allele}",
+                variant_id=input_variant.variant_id,
+                input_gene=input_variant.gene,
+                clinvar_gene=clinvar.gene,
+                preferred_name=clinvar.preferred_name,
+                variation_id=clinvar.variation_id,
+                allele_id=clinvar.allele_id,
+                match_strategy=clinvar.match_strategy,
+                clinvar_matched=clinvar.matched,
+                clinical_significance=clinvar.clinical_significance,
+                review_status=clinvar.review_status,
+                review_stars=clinvar.review_stars,
+                condition_names=list(clinvar.condition_names),
+                conflict_flagged=annotated.has_conflict,
+                conflict_significance=list(clinvar.conflict.conflict_significance),
+                conflict_summary_text=clinvar.conflict.summary_text,
+                submission_count=submissions.total_submissions if submissions is not None else None,
+                submission_submitter_names=list(submissions.submitter_names) if submissions is not None else [],
+                submission_review_statuses=list(submissions.review_statuses) if submissions is not None else [],
+                submission_clinical_significances=list(submissions.clinical_significances) if submissions is not None else [],
+                pharmgkb_queried=pharmgkb.queried if pharmgkb is not None else False,
+                pharmgkb_matched=pharmgkb.matched if pharmgkb is not None else False,
+                pharmgkb_gene_ids=list(pharmgkb.pharmgkb_gene_ids) if pharmgkb is not None else [],
+                pharmgkb_variant_ids=list(pharmgkb.pharmgkb_variant_ids) if pharmgkb is not None else [],
+                pharmgkb_chemicals=list(pharmgkb.chemicals) if pharmgkb is not None else [],
+                input_transcript=input_variant.transcript,
+                input_impact=input_variant.impact,
+                input_consequence=input_variant.consequence,
+                priority_score=ranked_variant.priority_score,
+                priority_tier=ranked_variant.priority_tier,
+                flags=list(annotated.flags),
+                ranking_rationale=list(ranked_variant.ranking_rationale),
+            )
+        )
+    return records
 
 
 def build_report_context(
