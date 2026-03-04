@@ -260,6 +260,70 @@ class AnnotatorTests(unittest.TestCase):
         self.assertTrue(annotated.has_clinvar_match)
         self.assertIn("gene_symbol_mismatch", annotated.flags)
 
+    def test_annotate_variant_does_not_flag_case_only_gene_difference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            input_path = root / "input.vcf"
+            input_path.write_text(
+                (
+                    "##fileformat=VCFv4.2\n"
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+                    "17\t43045702\t.\tA\tG\t100\tPASS\tGENE=tp53\n"
+                ),
+                encoding="utf-8",
+            )
+
+            variant_summary = root / "variant_summary.txt.gz"
+            with gzip.open(variant_summary, "wt", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle, delimiter="\t")
+                writer.writerow(
+                    [
+                        "#AlleleID",
+                        "Type",
+                        "Name",
+                        "GeneSymbol",
+                        "ClinicalSignificance",
+                        "LastEvaluated",
+                        "PhenotypeList",
+                        "ReviewStatus",
+                        "Origin",
+                        "Assembly",
+                        "Chromosome",
+                        "VariationID",
+                        "PositionVCF",
+                        "ReferenceAlleleVCF",
+                        "AlternateAlleleVCF",
+                        "RCVaccession",
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "10",
+                        "single nucleotide variant",
+                        "TP53 example",
+                        "TP53",
+                        "Pathogenic",
+                        "Jan 01, 2025",
+                        "Li-Fraumeni syndrome",
+                        "criteria provided, single submitter",
+                        "germline",
+                        "GRCh38",
+                        "17",
+                        "1234",
+                        "43045702",
+                        "A",
+                        "G",
+                        "RCV000000001",
+                    ]
+                )
+
+            index = load_clinvar_index(variant_summary)
+            variant = parse_vcf(input_path, GenomeAssembly.GRCH38)[0]
+            annotated = annotate_variant(variant, index)
+
+        self.assertTrue(annotated.has_clinvar_match)
+        self.assertNotIn("gene_symbol_mismatch", annotated.flags)
+
     def test_annotate_variants_preserves_input_order(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

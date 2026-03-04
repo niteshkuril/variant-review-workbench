@@ -6,6 +6,14 @@ from .clinvar_index import ClinVarIndex
 from .models import AnnotatedVariant, InputVariant
 
 
+def _normalize_gene_symbol(symbol: str | None) -> str | None:
+    """Normalize gene symbols before comparing user and ClinVar annotations."""
+    if symbol is None:
+        return None
+    normalized = symbol.strip().upper()
+    return normalized or None
+
+
 def build_annotation_flags(input_variant: InputVariant, annotated_variant: AnnotatedVariant) -> list[str]:
     """Derive transparent workflow flags from the merged annotation state."""
     flags: list[str] = []
@@ -23,7 +31,9 @@ def build_annotation_flags(input_variant: InputVariant, annotated_variant: Annot
     if clinvar.review_stars is not None:
         flags.append(f"clinvar_review_stars_{clinvar.review_stars}")
 
-    if input_variant.gene and clinvar.gene and input_variant.gene != clinvar.gene:
+    input_gene = _normalize_gene_symbol(input_variant.gene)
+    clinvar_gene = _normalize_gene_symbol(clinvar.gene)
+    if input_gene and clinvar_gene and input_gene != clinvar_gene:
         flags.append("gene_symbol_mismatch")
 
     if clinvar.submissions is not None and clinvar.submissions.total_submissions:

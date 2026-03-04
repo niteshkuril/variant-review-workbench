@@ -11,6 +11,7 @@ from src.clinvar_index import (
     enrich_index_with_supporting_data,
     load_conflict_lookup,
     load_submission_lookup,
+    load_variant_summary_index,
     review_status_to_stars,
 )
 from src.models import ClinVarMatch, ConflictSummary, GenomeAssembly, InputVariant
@@ -170,6 +171,77 @@ class ModelAndHelperTests(unittest.TestCase):
         looked_up.conflict = ConflictSummary(has_conflict=False)
 
         self.assertTrue(index.conflicts_by_variation_id[1234].has_conflict)
+
+    def test_load_variant_summary_index_skips_malformed_numeric_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "variant_summary.txt.gz"
+            with gzip.open(path, "wt", encoding="utf-8", newline="") as handle:
+                writer = csv.writer(handle, delimiter="\t")
+                writer.writerow(
+                    [
+                        "#AlleleID",
+                        "Type",
+                        "Name",
+                        "GeneSymbol",
+                        "ClinicalSignificance",
+                        "LastEvaluated",
+                        "PhenotypeList",
+                        "ReviewStatus",
+                        "Origin",
+                        "Assembly",
+                        "Chromosome",
+                        "VariationID",
+                        "PositionVCF",
+                        "ReferenceAlleleVCF",
+                        "AlternateAlleleVCF",
+                        "RCVaccession",
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "",
+                        "single nucleotide variant",
+                        "bad row",
+                        "TP53",
+                        "Pathogenic",
+                        "Jan 01, 2025",
+                        "-",
+                        "reviewed by expert panel",
+                        "germline",
+                        "GRCh38",
+                        "17",
+                        "",
+                        "43045702",
+                        "A",
+                        "G",
+                        "RCV000000001",
+                    ]
+                )
+                writer.writerow(
+                    [
+                        "10",
+                        "single nucleotide variant",
+                        "good row",
+                        "TP53",
+                        "Pathogenic",
+                        "Jan 01, 2025",
+                        "Li-Fraumeni syndrome",
+                        "reviewed by expert panel",
+                        "germline",
+                        "GRCh38",
+                        "17",
+                        "1234",
+                        "43045702",
+                        "A",
+                        "G",
+                        "RCV000000002",
+                    ]
+                )
+
+            index = load_variant_summary_index(path)
+
+        self.assertEqual(len(index.exact_matches), 1)
+        self.assertIn(("GRCh38", "17", 43045702, "A", "G"), index.exact_matches)
 
 
 if __name__ == "__main__":

@@ -128,6 +128,19 @@ def _build_provenance(source_name: str, source_kind: str, source_path: Path) -> 
     )
 
 
+def _parse_int_field(value: str | None) -> int | None:
+    """Parse an integer field from ClinVar text, returning None for blanks."""
+    if value is None:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    try:
+        return int(normalized)
+    except ValueError:
+        return None
+
+
 @dataclass(slots=True)
 class ClinVarIndex:
     """In-memory ClinVar lookup tables used by the annotation stage."""
@@ -188,17 +201,21 @@ def load_variant_summary_index(
             if reference_allele in {"", "-"} or alternate_allele in {"", "-"}:
                 continue
 
-            variation_id = int(row.VariationID)
+            variation_id = _parse_int_field(row.VariationID)
+            allele_id = _parse_int_field(row[0])
+            parsed_position = _parse_int_field(position_vcf)
+            if variation_id is None or allele_id is None or parsed_position is None:
+                continue
             candidate = ClinVarMatch(
                 matched=True,
                 match_strategy=MatchStrategy.EXACT,
                 assembly=assembly,
                 chromosome=chromosome,
-                position=int(position_vcf),
+                position=parsed_position,
                 reference_allele=reference_allele,
                 alternate_allele=alternate_allele,
                 variation_id=variation_id,
-                allele_id=int(row[0]),
+                allele_id=allele_id,
                 accession=(row.RCVaccession or "").split("|", 1)[0] or None,
                 preferred_name=(row.Name or "").strip() or None,
                 gene=(row.GeneSymbol or "").strip() or None,
