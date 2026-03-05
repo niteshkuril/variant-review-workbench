@@ -139,16 +139,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     )
     app.extensions["runtime_settings"] = runtime_settings
 
-    configured_job_execution_mode = str(app.config["JOB_EXECUTION_MODE"])
-    # Run web submissions synchronously to avoid cross-worker in-memory job state issues.
-    app.config["JOB_EXECUTION_MODE"] = "inline"
-    app.config["JOB_EXECUTION_MODE_CONFIGURED"] = configured_job_execution_mode
+    app.config["JOB_EXECUTION_MODE_CONFIGURED"] = str(app.config["JOB_EXECUTION_MODE"])
 
     upload_root = runtime_settings.upload_root
     run_output_root = runtime_settings.run_output_root
     ensure_storage_roots(upload_root, run_output_root)
 
-    app.extensions["job_store"] = JobStore()
+    app.extensions["job_store"] = JobStore(state_root=run_output_root)
     app.extensions["job_runner"] = JobRunner(
         store=app.extensions["job_store"],
         execution_mode=str(app.config["JOB_EXECUTION_MODE"]),

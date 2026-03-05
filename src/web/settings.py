@@ -48,7 +48,7 @@ class WebRuntimeSettings:
 
         return cls(
             project_root=project_root,
-            job_execution_mode=os.getenv("VRW_JOB_EXECUTION_MODE", "inline"),
+            job_execution_mode=os.getenv("VRW_JOB_EXECUTION_MODE", "threaded"),
             max_upload_mb=_env_int("VRW_MAX_UPLOAD_MB", 25),
             upload_root=Path(os.getenv("VRW_UPLOAD_ROOT", str(data_root / "uploads"))),
             run_output_root=Path(os.getenv("VRW_RUN_OUTPUT_ROOT", str(data_root / "runs"))),

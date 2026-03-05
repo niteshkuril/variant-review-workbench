@@ -5,6 +5,8 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+import json
+from pathlib import Path
 from threading import Lock
 from typing import Any, Callable
 
@@ -32,9 +34,67 @@ class JobRecord:
 class JobStore:
     """Thread-safe in-memory store for submitted web jobs."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, state_root: Path | None = None) -> None:
         self._jobs: dict[str, JobRecord] = {}
         self._lock = Lock()
+        self._state_root = state_root
+
+    @staticmethod
+    def _record_to_payload(job: JobRecord) -> dict[str, Any]:
+        return {
+            "job_id": job.job_id,
+            "status": job.status,
+            "created_at": job.created_at,
+            "updated_at": job.updated_at,
+            "mode": job.mode,
+            "export_format": job.export_format,
+            "result": job.result,
+            "error": job.error,
+            "metadata": job.metadata,
+        }
+
+    @staticmethod
+    def _record_from_payload(payload: dict[str, Any]) -> JobRecord:
+        return JobRecord(
+            job_id=str(payload.get("job_id", "")),
+            status=str(payload.get("status", "queued")),
+            created_at=str(payload.get("created_at", _utcnow_iso())),
+            updated_at=str(payload.get("updated_at", _utcnow_iso())),
+            mode=str(payload.get("mode", "report")),
+            export_format=payload.get("export_format"),
+            result=payload.get("result"),
+            error=payload.get("error"),
+            metadata=dict(payload.get("metadata") or {}),
+        )
+
+    def _state_path(self, job_id: str) -> Path | None:
+        if self._state_root is None:
+            return None
+        return self._state_root / job_id / "job_state.json"
+
+    def _persist_job_state(self, job: JobRecord) -> None:
+        state_path = self._state_path(job.job_id)
+        if state_path is None:
+            return
+
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        payload = self._record_to_payload(job)
+        temp_path = state_path.with_suffix(state_path.suffix + ".tmp")
+        temp_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        temp_path.replace(state_path)
+
+    def _load_job_state(self, job_id: str) -> JobRecord | None:
+        state_path = self._state_path(job_id)
+        if state_path is None or not state_path.exists():
+            return None
+
+        try:
+            payload = json.loads(state_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return self._record_from_payload(payload)
 
     def create_job(self, *, job_id: str, mode: str, export_format: str | None, metadata: dict[str, Any]) -> JobRecord:
         """Create and store a new queued job record."""
@@ -50,12 +110,19 @@ class JobStore:
         )
         with self._lock:
             self._jobs[job_id] = job
+            self._persist_job_state(job)
         return job
 
     def get_job(self, job_id: str) -> JobRecord | None:
         """Return a job record by identifier."""
         with self._lock:
-            return self._jobs.get(job_id)
+            existing = self._jobs.get(job_id)
+            if existing is not None:
+                return existing
+            recovered = self._load_job_state(job_id)
+            if recovered is not None:
+                self._jobs[job_id] = recovered
+            return recovered
 
     def start_job(self, job_id: str) -> None:
         """Mark a job as running."""
@@ -63,6 +130,7 @@ class JobStore:
             job = self._jobs[job_id]
             job.status = "running"
             job.updated_at = _utcnow_iso()
+            self._persist_job_state(job)
 
     def complete_job(self, job_id: str, result: dict[str, Any]) -> None:
         """Mark a job as successfully completed."""
@@ -71,6 +139,7 @@ class JobStore:
             job.status = "succeeded"
             job.result = result
             job.updated_at = _utcnow_iso()
+            self._persist_job_state(job)
 
     def fail_job(self, job_id: str, error: str) -> None:
         """Mark a job as failed."""
@@ -79,6 +148,7 @@ class JobStore:
             job.status = "failed"
             job.error = error
             job.updated_at = _utcnow_iso()
+            self._persist_job_state(job)
 
 
 class JobRunner:

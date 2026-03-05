@@ -205,8 +205,8 @@ class WebAppTests(unittest.TestCase):
         self.assertTrue(payload["paths"]["run_output_root"].endswith("runs"))
         self.assertTrue(payload["checks"]["clinvar_variant_summary_exists"])
 
-    def test_health_check_forces_inline_even_when_threaded_configured(self) -> None:
-        forced_inline_app = create_app(
+    def test_health_check_reflects_threaded_when_threaded_configured(self) -> None:
+        threaded_app = create_app(
             {
                 "TESTING": True,
                 "JOB_EXECUTION_MODE": "threaded",
@@ -220,13 +220,35 @@ class WebAppTests(unittest.TestCase):
             }
         )
 
-        response = forced_inline_app.test_client().get("/healthz")
+        response = threaded_app.test_client().get("/healthz")
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         assert payload is not None
-        self.assertEqual(payload["job_execution_mode"], "inline")
+        self.assertEqual(payload["job_execution_mode"], "threaded")
         self.assertEqual(payload["job_execution_mode_configured"], "threaded")
+
+    def test_status_endpoint_recovers_job_from_disk_when_memory_is_empty(self) -> None:
+        create_response = self.client.post(
+            "/runs",
+            data={
+                "assembly": "GRCh38",
+                "export_format": "json",
+                "vcf_file": (io.BytesIO(self._demo_vcf_bytes()), "demo.vcf"),
+            },
+            content_type="multipart/form-data",
+        )
+        run_id = create_response.headers["Location"].rstrip("/").split("/")[-1]
+
+        # Simulate process-local in-memory job loss; status should recover from persisted run state.
+        self.app.extensions["job_store"]._jobs.clear()
+        response = self.client.get(f"/runs/{run_id}/status")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        assert payload is not None
+        self.assertEqual(payload["job_id"], run_id)
+        self.assertEqual(payload["status"], "succeeded")
 
     def test_health_check_returns_degraded_for_missing_reference_paths(self) -> None:
         broken_app = create_app(
