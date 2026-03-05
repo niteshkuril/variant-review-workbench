@@ -30,6 +30,7 @@ class WebRuntimeSettings:
     project_root: Path
     job_execution_mode: str
     max_upload_mb: int
+    max_input_variants: int
     job_max_workers: int
     upload_root: Path
     run_output_root: Path
@@ -51,6 +52,7 @@ class WebRuntimeSettings:
             project_root=project_root,
             job_execution_mode=os.getenv("VRW_JOB_EXECUTION_MODE", "threaded"),
             max_upload_mb=_env_int("VRW_MAX_UPLOAD_MB", 25),
+            max_input_variants=max(1, _env_int("VRW_MAX_INPUT_VARIANTS", 3000)),
             job_max_workers=max(1, _env_int("VRW_JOB_MAX_WORKERS", 1)),
             upload_root=Path(os.getenv("VRW_UPLOAD_ROOT", str(data_root / "uploads"))),
             run_output_root=Path(os.getenv("VRW_RUN_OUTPUT_ROOT", str(data_root / "runs"))),
@@ -79,6 +81,7 @@ class WebRuntimeSettings:
             "JOB_EXECUTION_MODE": self.job_execution_mode,
             "MAX_CONTENT_LENGTH": self.max_upload_mb * 1024 * 1024,
             "MAX_UPLOAD_MB": self.max_upload_mb,
+            "MAX_INPUT_VARIANTS": self.max_input_variants,
             "JOB_MAX_WORKERS": self.job_max_workers,
             "UPLOAD_ROOT": str(self.upload_root),
             "RUN_OUTPUT_ROOT": str(self.run_output_root),

@@ -210,6 +210,7 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["job_execution_mode"], "inline")
         self.assertEqual(payload["job_execution_mode_configured"], "inline")
+        self.assertEqual(payload["max_input_variants"], 3000)
         self.assertEqual(payload["job_max_workers"], 1)
         self.assertEqual(payload["max_upload_mb"], 25)
         self.assertTrue(payload["paths"]["upload_root"].endswith("uploads"))
@@ -238,6 +239,7 @@ class WebAppTests(unittest.TestCase):
         assert payload is not None
         self.assertEqual(payload["job_execution_mode"], "threaded")
         self.assertEqual(payload["job_execution_mode_configured"], "threaded")
+        self.assertEqual(payload["max_input_variants"], 3000)
         self.assertEqual(payload["job_max_workers"], 1)
 
     def test_status_endpoint_recovers_job_from_disk_when_memory_is_empty(self) -> None:

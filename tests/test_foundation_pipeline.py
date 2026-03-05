@@ -80,6 +80,26 @@ class FoundationPipelineTests(unittest.TestCase):
         self.assertEqual(variants[0].impact, "MODERATE")
         self.assertEqual(variants[0].variant_id, "rs123")
 
+    def test_parse_vcf_respects_max_variants_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = Path(tmpdir) / "input.vcf"
+            input_path.write_text(
+                (
+                    "##fileformat=VCFv4.2\n"
+                    "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+                    "17\t43045702\t.\tA\tG\t100\tPASS\tGENE=TP53;IMPACT=HIGH\n"
+                    "17\t43045703\t.\tA\tG\t100\tPASS\tGENE=TP53;IMPACT=HIGH\n"
+                    "17\t43045704\t.\tA\tG\t100\tPASS\tGENE=TP53;IMPACT=HIGH\n"
+                ),
+                encoding="utf-8",
+            )
+
+            variants = parse_vcf(input_path, GenomeAssembly.GRCH38, max_variants=2)
+
+        self.assertEqual(len(variants), 2)
+        self.assertEqual(variants[0].position, 43045702)
+        self.assertEqual(variants[1].position, 43045703)
+
     def test_clinvar_index_matches_lowercase_input_and_filters_placeholder_conditions(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)

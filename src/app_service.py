@@ -110,7 +110,8 @@ def run_pipeline_with_result(args: argparse.Namespace) -> PipelineRunResult:
     validate_runtime_paths(args)
     input_path = Path(args.input)
     output_dir = Path(args.out_dir)
-    input_variants = parse_vcf(input_path, args.assembly)
+    max_input_variants = getattr(args, "max_input_variants", None)
+    input_variants = parse_vcf(input_path, args.assembly, max_variants=max_input_variants)
 
     clinvar_index = load_clinvar_index(
         variant_summary_path=Path(args.variant_summary),

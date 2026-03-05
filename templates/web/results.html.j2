@@ -114,6 +114,11 @@
           <span class="metric">{{ job.result.summary.conflict_flagged_count }}</span>
           <p>Findings surfaced into the conflict review queue for manual inspection.</p>
         </div>
+        <div class="fact-card">
+          <strong>Web Variant Cap</strong>
+          <span class="metric">{{ job.result.max_input_variants }}</span>
+          <p>Maximum variant records processed for each web submission.</p>
+        </div>
       </div>
       {% if job.result.summary.input_variant_count > 0 and job.result.summary.clinvar_matched_count == 0 %}
         <div class="notice warning" style="margin-top: 16px;">
@@ -156,6 +161,7 @@
       {% endif %}
       <ul>
         <li>Generated report will be embedded here when ready.</li>
+        <li>Web runs process at most {{ web_scope.max_input_variants }} variant records per submission.</li>
         <li>Export controls will remain visible after the job succeeds.</li>
         <li>Artifacts and provenance remain bound to the run workspace.</li>
       </ul>

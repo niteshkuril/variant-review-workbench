@@ -195,7 +195,7 @@ def _build_input_variant(
     )
 
 
-def parse_vcf(input_path: Path, assembly: GenomeAssembly) -> list[InputVariant]:
+def parse_vcf(input_path: Path, assembly: GenomeAssembly, max_variants: int | None = None) -> list[InputVariant]:
     """Read a VCF or VCF.GZ file and return normalized InputVariant records."""
     saw_header = False
     variants: list[InputVariant] = []
@@ -240,6 +240,8 @@ def parse_vcf(input_path: Path, assembly: GenomeAssembly) -> list[InputVariant]:
                         info=info,
                     )
                 )
+                if max_variants is not None and len(variants) >= max_variants:
+                    return variants
 
     if not saw_header:
         raise ValueError("Input does not contain a #CHROM header line.")
