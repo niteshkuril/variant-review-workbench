@@ -287,6 +287,24 @@ class WebAppTests(unittest.TestCase):
         self.assertIn(b"Export Markdown", response.data)
         self.assertIn(b"Non-clinical output only.", response.data)
 
+    def test_results_page_shows_no_match_warning_when_clinvar_match_count_is_zero(self) -> None:
+        create_response = self.client.post(
+            "/runs",
+            data={
+                "assembly": "GRCh37",
+                "export_format": "html",
+                "vcf_file": (io.BytesIO(self._demo_vcf_bytes()), "demo.vcf"),
+            },
+            content_type="multipart/form-data",
+        )
+        response = self.client.get(create_response.headers["Location"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"No ClinVar matches were found for this run.", response.data)
+        self.assertIn(b"All variants were assigned", response.data)
+        self.assertIn(b"context_only", response.data)
+        self.assertIn(b"GRCh37", response.data)
+
     def test_status_endpoint_returns_job_result(self) -> None:
         create_response = self.client.post(
             "/runs",

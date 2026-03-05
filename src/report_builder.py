@@ -34,6 +34,22 @@ LIMITATIONS_NOTES = [
 ]
 
 
+def _build_no_clinvar_match_warning(summary: SummaryArtifact, assembly: str | None) -> dict[str, str] | None:
+    """Build a user-facing warning when no variants matched ClinVar."""
+    if summary.input_variant_count == 0 or summary.clinvar_matched_count > 0:
+        return None
+
+    assembly_label = assembly or "selected assembly"
+    return {
+        "title": "No ClinVar matches were found for this run.",
+        "message": (
+            f"All variants were assigned context_only. Confirm the selected assembly ({assembly_label}) matches the "
+            "VCF coordinates (for example, GRCh37 versus GRCh38), and verify the local ClinVar snapshot covers "
+            "these loci. Custom assemblies can only be run via command line, requiring a cold start."
+        ),
+    }
+
+
 def _serialize_sources(sources: list[object]) -> list[dict[str, object]]:
     """Convert provenance models or mapping-like objects into JSON-safe dicts."""
     serialized: list[dict[str, object]] = []
@@ -174,6 +190,7 @@ def build_report_context(
 ) -> dict[str, object]:
     """Build the full template context for the HTML report."""
     summary = build_report_summary(ranked_variants)
+    assembly_value = run_metadata.assembly.value if run_metadata is not None else None
     rows = [_build_variant_row(ranked_variant) for ranked_variant in ranked_variants]
     top_findings = rows[: min(5, len(rows))]
     conflict_rows = [row for row in rows if row["conflict"] == "Yes"]
@@ -189,10 +206,11 @@ def build_report_context(
     return {
         "report_title": "Variant Review Report",
         "generated_at": run_metadata.run_started_at.isoformat() if run_metadata is not None else None,
-        "assembly": run_metadata.assembly.value if run_metadata is not None else None,
+        "assembly": assembly_value,
         "input_path": run_metadata.input_path if run_metadata is not None else None,
         "summary": report_summary,
         "summary_artifact": summary.model_dump(mode="json"),
+        "no_clinvar_match_warning": _build_no_clinvar_match_warning(summary, assembly_value),
         "top_findings": top_findings,
         "conflict_rows": conflict_rows,
         "variant_rows": rows,
@@ -211,6 +229,7 @@ def build_report_export_payload(report_context: dict[str, object]) -> dict[str, 
         "input_path": report_context["input_path"],
         "summary": report_context["summary"],
         "summary_artifact": report_context["summary_artifact"],
+        "no_clinvar_match_warning": report_context.get("no_clinvar_match_warning"),
         "top_findings": report_context["top_findings"],
         "conflict_rows": report_context["conflict_rows"],
         "variant_rows": report_context["variant_rows"],
@@ -240,9 +259,25 @@ def render_markdown_report_from_context(report_context: dict[str, object]) -> st
         f"- Conflict flagged: {summary['conflict_count']}",
         f"- PharmGKB enriched: {summary['pharmgkb_count']}",
         "",
+    ]
+    warning = payload.get("no_clinvar_match_warning")
+    if warning:
+        assert isinstance(warning, dict)
+        lines.extend(
+            [
+                "## Match Warning",
+                "",
+                f"- {warning.get('title', 'No ClinVar matches were found for this run.')}",
+                f"- {warning.get('message', '')}",
+                "",
+            ]
+        )
+    lines.extend(
+        [
         "## Top Findings",
         "",
-    ]
+        ]
+    )
     top_findings = payload["top_findings"]
     assert isinstance(top_findings, list)
     for row in top_findings:

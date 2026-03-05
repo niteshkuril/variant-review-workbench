@@ -164,6 +164,20 @@
       font-size: 0.9rem;
     }
 
+    .notice-warning {
+      margin-top: 18px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #e7b9b9;
+      background: #fdecec;
+      color: #7b1313;
+    }
+
+    .notice-warning p {
+      margin: 6px 0 0;
+      color: inherit;
+    }
+
     @media (max-width: 760px) {
       .hero, section { padding: 18px; }
       table, thead, tbody, th, td, tr { display: block; }
@@ -215,6 +229,12 @@
           <div class="metric-value">{{ summary.pharmgkb_count }}</div>
         </div>
       </div>
+      {% if no_clinvar_match_warning %}
+        <div class="notice-warning">
+          <strong>{{ no_clinvar_match_warning.title }}</strong>
+          <p>{{ no_clinvar_match_warning.message }}</p>
+        </div>
+      {% endif %}
     </section>
 
     <section>

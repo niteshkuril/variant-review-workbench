@@ -105,6 +105,26 @@ class ReportBuilderTests(unittest.TestCase):
         self.assertEqual(len(context["top_findings"]), 3)
         self.assertEqual(len(context["conflict_rows"]), 1)
         self.assertEqual(context["variant_rows"][0]["gene"], "TP53")
+        self.assertIsNone(context["no_clinvar_match_warning"])
+
+    def test_build_report_context_sets_no_match_warning_when_all_variants_unmatched(self) -> None:
+        ranked_variants = [
+            build_ranked_variant("record-1", "DPYD", 97450058, ReviewPriorityTier.CONTEXT_ONLY, 0.0, matched=False),
+            build_ranked_variant("record-2", "APC", 112827199, ReviewPriorityTier.CONTEXT_ONLY, 0.0, matched=False),
+        ]
+        metadata = RunMetadata(
+            input_path="data/demo.vcf",
+            output_dir="outputs/demo",
+            assembly=GenomeAssembly.GRCH37,
+        )
+
+        context = build_report_context(ranked_variants, metadata)
+        warning = context["no_clinvar_match_warning"]
+
+        self.assertIsNotNone(warning)
+        assert isinstance(warning, dict)
+        self.assertIn("No ClinVar matches were found", warning["title"])
+        self.assertIn("GRCh37", warning["message"])
 
     def test_render_html_report_contains_expected_sections(self) -> None:
         ranked_variants = [
@@ -127,6 +147,21 @@ class ReportBuilderTests(unittest.TestCase):
         self.assertIn("Limitations", html)
         self.assertIn("TP53", html)
         self.assertIn("Li-Fraumeni syndrome", html)
+
+    def test_render_html_report_shows_no_match_warning_when_all_variants_unmatched(self) -> None:
+        ranked_variants = [
+            build_ranked_variant("record-1", "DPYD", 97450058, ReviewPriorityTier.CONTEXT_ONLY, 0.0, matched=False),
+        ]
+        metadata = RunMetadata(
+            input_path="data/demo.vcf",
+            output_dir="outputs/demo",
+            assembly=GenomeAssembly.GRCH37,
+        )
+
+        html = render_html_report(ranked_variants, metadata)
+
+        self.assertIn("No ClinVar matches were found for this run.", html)
+        self.assertIn("All variants were assigned context_only.", html)
 
     def test_write_html_report_writes_output_file(self) -> None:
         ranked_variants = [

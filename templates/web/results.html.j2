@@ -115,6 +115,17 @@
           <p>Findings surfaced into the conflict review queue for manual inspection.</p>
         </div>
       </div>
+      {% if job.result.summary.input_variant_count > 0 and job.result.summary.clinvar_matched_count == 0 %}
+        <div class="notice warning" style="margin-top: 16px;">
+          <strong>No ClinVar matches were found for this run.</strong>
+          <p>
+            All variants were assigned <code>context_only</code>. Confirm the selected assembly
+            (<code>{{ job.result.assembly }}</code>) matches the VCF coordinates (for example, GRCh37 versus GRCh38),
+            and verify the configured ClinVar snapshot covers these loci. Custom assemblies can only be run via
+            command line, requiring a cold start.
+          </p>
+        </div>
+      {% endif %}
     </section>
 
     <section class="panel" style="margin-top: 24px; padding: 16px;">
