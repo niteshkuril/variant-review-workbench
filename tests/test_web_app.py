@@ -170,6 +170,16 @@ class WebAppTests(unittest.TestCase):
             handle.write(cls._demo_vcf_bytes())
         return buffer.getvalue()
 
+    @staticmethod
+    def _vcf_with_record_count(record_count: int) -> bytes:
+        header = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+        rows = []
+        for index in range(record_count):
+            rows.append(
+                f"17\t{43045702 + index}\t.\tA\tG\t100\tPASS\tGENE=TP53;IMPACT=HIGH"
+            )
+        return (header + "\n".join(rows) + "\n").encode("utf-8")
+
     def test_home_page_renders_form_shell(self) -> None:
         response = self.client.get("/")
 
@@ -630,6 +640,175 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(results_response.status_code, 200)
         self.assertIn(b"Run failed", results_response.data)
         self.assertIn(b"synthetic pipeline failure", results_response.data)
+
+    def test_threaded_reload_points_do_not_break_run_visibility(self) -> None:
+        threaded_app = create_app(
+            {
+                "TESTING": True,
+                "JOB_EXECUTION_MODE": "threaded",
+                "UPLOAD_ROOT": str(Path(self.tmpdir.name) / "threaded_reload_uploads"),
+                "RUN_OUTPUT_ROOT": str(Path(self.tmpdir.name) / "threaded_reload_runs"),
+                "RUN_RETENTION_HOURS": 1,
+                "CLINVAR_VARIANT_SUMMARY": str(self.variant_summary),
+                "CLINVAR_CONFLICT_SUMMARY": str(self.conflict_summary),
+                "CLINVAR_SUBMISSION_SUMMARY": str(self.submission_summary),
+                "CLINVAR_CACHE_DB": str(self.cache_db),
+                "DISABLE_CLINVAR_CACHE": False,
+            }
+        )
+        client = threaded_app.test_client()
+
+        def fake_run_pipeline_job(**kwargs: object) -> dict[str, object]:
+            time.sleep(0.35)
+            job_id = str(kwargs["job_id"])
+            output_dir = str(kwargs["output_dir"])
+            return {
+                "job_id": job_id,
+                "assembly": "GRCh38",
+                "mode": "report",
+                "export_format": "json",
+                "pharmgkb_enabled": False,
+                "uploaded_vcf_path": str(kwargs["uploaded_vcf_path"]),
+                "output_dir": output_dir,
+                "report_html_path": str(Path(output_dir) / "report.html"),
+                "report_markdown_path": str(Path(output_dir) / "report.md"),
+                "report_json_path": str(Path(output_dir) / "report.json"),
+                "summary_json_path": str(Path(output_dir) / "summary.json"),
+                "prioritized_variants_json_path": str(Path(output_dir) / "prioritized_variants.json"),
+                "annotated_variants_csv_path": str(Path(output_dir) / "annotated_variants.csv"),
+                "run_metadata_json_path": str(Path(output_dir) / "run_metadata.json"),
+                "summary": {
+                    "input_variant_count": 1,
+                    "clinvar_matched_count": 1,
+                    "clinvar_unmatched_count": 0,
+                    "conflict_flagged_count": 0,
+                    "pharmgkb_enriched_count": 0,
+                },
+                "message": "ok",
+            }
+
+        with patch("src.web.app._run_pipeline_job", side_effect=fake_run_pipeline_job):
+            create_response = client.post(
+                "/runs",
+                data={
+                    "assembly": "GRCh38",
+                    "export_format": "json",
+                    "vcf_file": (io.BytesIO(self._demo_vcf_bytes()), "demo.vcf"),
+                },
+                content_type="multipart/form-data",
+            )
+
+            self.assertEqual(create_response.status_code, 302)
+            run_path = create_response.headers["Location"]
+            run_id = run_path.rstrip("/").split("/")[-1]
+
+            # Simulate user refreshes at different run phases.
+            for delay_seconds in (0.0, 0.08, 0.18, 0.28, 0.42):
+                if delay_seconds:
+                    time.sleep(delay_seconds)
+                results_response = client.get(run_path)
+                status_response = client.get(f"/runs/{run_id}/status")
+                self.assertEqual(results_response.status_code, 200)
+                self.assertEqual(status_response.status_code, 200)
+
+            final_status_payload = client.get(f"/runs/{run_id}/status").get_json()
+            assert final_status_payload is not None
+            self.assertEqual(final_status_payload["status"], "succeeded")
+
+            final_results_response = client.get(run_path)
+            self.assertEqual(final_results_response.status_code, 200)
+            self.assertIn(b"Report Preview", final_results_response.data)
+
+    def test_threaded_reload_points_across_vcf_sizes(self) -> None:
+        threaded_app = create_app(
+            {
+                "TESTING": True,
+                "JOB_EXECUTION_MODE": "threaded",
+                "UPLOAD_ROOT": str(Path(self.tmpdir.name) / "threaded_sizes_uploads"),
+                "RUN_OUTPUT_ROOT": str(Path(self.tmpdir.name) / "threaded_sizes_runs"),
+                "RUN_RETENTION_HOURS": 1,
+                "CLINVAR_VARIANT_SUMMARY": str(self.variant_summary),
+                "CLINVAR_CONFLICT_SUMMARY": str(self.conflict_summary),
+                "CLINVAR_SUBMISSION_SUMMARY": str(self.submission_summary),
+                "CLINVAR_CACHE_DB": str(self.cache_db),
+                "DISABLE_CLINVAR_CACHE": False,
+            }
+        )
+        client = threaded_app.test_client()
+
+        def fake_run_pipeline_job(**kwargs: object) -> dict[str, object]:
+            time.sleep(0.2)
+            job_id = str(kwargs["job_id"])
+            output_dir = str(kwargs["output_dir"])
+            return {
+                "job_id": job_id,
+                "assembly": "GRCh38",
+                "mode": "report",
+                "export_format": "json",
+                "pharmgkb_enabled": False,
+                "uploaded_vcf_path": str(kwargs["uploaded_vcf_path"]),
+                "output_dir": output_dir,
+                "report_html_path": str(Path(output_dir) / "report.html"),
+                "report_markdown_path": str(Path(output_dir) / "report.md"),
+                "report_json_path": str(Path(output_dir) / "report.json"),
+                "summary_json_path": str(Path(output_dir) / "summary.json"),
+                "prioritized_variants_json_path": str(Path(output_dir) / "prioritized_variants.json"),
+                "annotated_variants_csv_path": str(Path(output_dir) / "annotated_variants.csv"),
+                "run_metadata_json_path": str(Path(output_dir) / "run_metadata.json"),
+                "summary": {
+                    "input_variant_count": 1,
+                    "clinvar_matched_count": 1,
+                    "clinvar_unmatched_count": 0,
+                    "conflict_flagged_count": 0,
+                    "pharmgkb_enriched_count": 0,
+                },
+                "message": "ok",
+            }
+
+        payloads = [
+            ("small.vcf", self._vcf_with_record_count(1)),
+            ("medium.vcf", self._vcf_with_record_count(500)),
+            ("large.vcf", self._vcf_with_record_count(5000)),
+        ]
+
+        with patch("src.web.app._run_pipeline_job", side_effect=fake_run_pipeline_job):
+            for filename, payload in payloads:
+                create_response = client.post(
+                    "/runs",
+                    data={
+                        "assembly": "GRCh38",
+                        "export_format": "json",
+                        "vcf_file": (io.BytesIO(payload), filename),
+                    },
+                    content_type="multipart/form-data",
+                )
+                self.assertEqual(create_response.status_code, 302)
+
+                run_path = create_response.headers["Location"]
+                run_id = run_path.rstrip("/").split("/")[-1]
+
+                # Immediate and mid-run refresh should stay valid regardless of upload size.
+                immediate_results = client.get(run_path)
+                self.assertEqual(immediate_results.status_code, 200)
+
+                time.sleep(0.1)
+                mid_status = client.get(f"/runs/{run_id}/status")
+                self.assertEqual(mid_status.status_code, 200)
+
+                final_payload = None
+                for _ in range(60):
+                    status_response = client.get(f"/runs/{run_id}/status")
+                    self.assertEqual(status_response.status_code, 200)
+                    final_payload = status_response.get_json()
+                    assert final_payload is not None
+                    if final_payload["status"] == "succeeded":
+                        break
+                    time.sleep(0.02)
+
+                assert final_payload is not None
+                self.assertEqual(final_payload["status"], "succeeded")
+                final_results = client.get(run_path)
+                self.assertEqual(final_results.status_code, 200)
 
 
 if __name__ == "__main__":
