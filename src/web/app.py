@@ -139,6 +139,13 @@ def create_app(test_config: dict | None = None) -> Flask:
     )
     app.extensions["runtime_settings"] = runtime_settings
 
+    configured_execution_mode = str(app.config["JOB_EXECUTION_MODE"])
+    effective_execution_mode = configured_execution_mode
+    if configured_execution_mode == "inline" and not bool(app.config.get("TESTING", False)):
+        # Prevent host request timeouts for larger uploads by forcing background execution in deployed environments.
+        effective_execution_mode = "threaded"
+    app.config["JOB_EXECUTION_MODE_EFFECTIVE"] = effective_execution_mode
+
     upload_root = runtime_settings.upload_root
     run_output_root = runtime_settings.run_output_root
     ensure_storage_roots(upload_root, run_output_root)
@@ -146,7 +153,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.extensions["job_store"] = JobStore()
     app.extensions["job_runner"] = JobRunner(
         store=app.extensions["job_store"],
-        execution_mode=app.config["JOB_EXECUTION_MODE"],
+        execution_mode=str(app.config["JOB_EXECUTION_MODE_EFFECTIVE"]),
     )
 
     @app.context_processor
@@ -241,7 +248,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 app=app,
             ),
         )
-        if mode == "export_only" and app.config["JOB_EXECUTION_MODE"] == "inline":
+        if mode == "export_only" and app.config["JOB_EXECUTION_MODE_EFFECTIVE"] == "inline":
             return redirect(url_for("run_export", run_id=job_id, export_format=export_format))
         return redirect(url_for("results", run_id=job_id))
 
@@ -312,7 +319,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     @app.get("/healthz")
     def healthz() -> tuple[dict[str, object], int]:
         payload = runtime_settings.health_snapshot()
-        payload["job_execution_mode"] = runtime_settings.job_execution_mode
+        payload["job_execution_mode"] = str(app.config["JOB_EXECUTION_MODE_EFFECTIVE"])
+        payload["job_execution_mode_configured"] = runtime_settings.job_execution_mode
         payload["max_upload_mb"] = runtime_settings.max_upload_mb
         status_code = 200 if payload["status"] == "ok" else 503
         return payload, status_code

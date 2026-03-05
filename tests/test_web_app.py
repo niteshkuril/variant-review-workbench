@@ -199,10 +199,34 @@ class WebAppTests(unittest.TestCase):
         assert payload is not None
         self.assertEqual(payload["status"], "ok")
         self.assertEqual(payload["job_execution_mode"], "inline")
+        self.assertEqual(payload["job_execution_mode_configured"], "inline")
         self.assertEqual(payload["max_upload_mb"], 25)
         self.assertTrue(payload["paths"]["upload_root"].endswith("uploads"))
         self.assertTrue(payload["paths"]["run_output_root"].endswith("runs"))
         self.assertTrue(payload["checks"]["clinvar_variant_summary_exists"])
+
+    def test_non_testing_inline_mode_is_forced_to_threaded(self) -> None:
+        root = Path(self.tmpdir.name)
+        non_testing_app = create_app(
+            {
+                "JOB_EXECUTION_MODE": "inline",
+                "UPLOAD_ROOT": str(root / "uploads_non_testing"),
+                "RUN_OUTPUT_ROOT": str(root / "runs_non_testing"),
+                "CLINVAR_VARIANT_SUMMARY": str(self.variant_summary),
+                "CLINVAR_CONFLICT_SUMMARY": str(self.conflict_summary),
+                "CLINVAR_SUBMISSION_SUMMARY": str(self.submission_summary),
+                "CLINVAR_CACHE_DB": str(self.cache_db),
+                "DISABLE_CLINVAR_CACHE": False,
+            }
+        )
+
+        response = non_testing_app.test_client().get("/healthz")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        assert payload is not None
+        self.assertEqual(payload["job_execution_mode"], "threaded")
+        self.assertEqual(payload["job_execution_mode_configured"], "inline")
 
     def test_health_check_returns_degraded_for_missing_reference_paths(self) -> None:
         broken_app = create_app(
