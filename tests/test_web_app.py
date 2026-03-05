@@ -609,6 +609,7 @@ class WebAppTests(unittest.TestCase):
         )
         client = threaded_app.test_client()
 
+        status_payload = None
         with patch("src.web.app._run_pipeline_job", side_effect=RuntimeError("synthetic pipeline failure")):
             create_response = client.post(
                 "/runs",
@@ -619,18 +620,16 @@ class WebAppTests(unittest.TestCase):
                 },
                 content_type="multipart/form-data",
             )
+            self.assertEqual(create_response.status_code, 302)
+            run_id = create_response.headers["Location"].rstrip("/").split("/")[-1]
 
-        self.assertEqual(create_response.status_code, 302)
-        run_id = create_response.headers["Location"].rstrip("/").split("/")[-1]
-
-        status_payload = None
-        for _ in range(100):
-            status_response = client.get(f"/runs/{run_id}/status")
-            status_payload = status_response.get_json()
-            assert status_payload is not None
-            if status_payload["status"] == "failed":
-                break
-            time.sleep(0.02)
+            for _ in range(100):
+                status_response = client.get(f"/runs/{run_id}/status")
+                status_payload = status_response.get_json()
+                assert status_payload is not None
+                if status_payload["status"] == "failed":
+                    break
+                time.sleep(0.02)
 
         assert status_payload is not None
         self.assertEqual(status_payload["status"], "failed")
