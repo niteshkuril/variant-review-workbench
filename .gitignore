@@ -10,5 +10,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .web_runtime/
+outputs/runtime_check_no_pgx/
+outputs/runtime_check_with_pgx/
+data/screenshots/0_webpage.png
 
 WORKPLAN.local.md

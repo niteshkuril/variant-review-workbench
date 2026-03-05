@@ -20,11 +20,11 @@ Recommended Render service settings for the current repository state:
 
 - Root Directory: blank
 - Build Command: `pip install -r requirements.txt`
-- Start Command: `flask --app src.web.app run --host 0.0.0.0 --port $PORT`
+- Start Command: `gunicorn --bind 0.0.0.0:$PORT src.web.app:create_app()`
 - Instance Type: `Starter`
 - Disk Mount Path: `/var/data`
 
-The start command still uses the Flask development server because `gunicorn` is not currently included in the project dependencies.
+`gunicorn` is included in the project dependencies and is the recommended hosted process manager.
 
 ## Persistent Disk Layout
 
