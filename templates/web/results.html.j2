@@ -131,13 +131,14 @@
     <section class="panel" style="margin-top: 24px; padding: 16px;">
       <div class="panel-header" style="padding: 12px 12px 0;">
         <h2>Report Preview</h2>
-        <a class="button ghost" href="{{ url_for('run_report', run_id=run_id) }}">Open raw HTML</a>
+        <a class="button ghost" href="{{ url_for('run_report', run_id=run_id) }}" target="_blank" rel="noopener noreferrer">Open HTML Report</a>
       </div>
-      <iframe
-        title="Variant Review Report"
-        src="{{ url_for('run_report', run_id=run_id) }}"
-        class="report-frame"
-      ></iframe>
+      <div class="notice" style="margin: 12px;">
+        <strong>Preview is not auto-loaded.</strong>
+        <p>
+          The generated HTML report may be large for bigger VCF uploads. Use <em>Open HTML Report</em> to view it on demand.
+        </p>
+      </div>
     </section>
   {% else %}
     <section class="panel" style="margin-top: 24px;">

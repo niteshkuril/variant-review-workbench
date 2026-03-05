@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from uuid import uuid4
 
-from flask import Flask, Response, abort, jsonify, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request, send_file, url_for
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from ..app_service import PipelineUsageError, run_pipeline_with_result
@@ -271,7 +271,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         report_path = Path(str(job.result["report_html_path"]))
         if not report_path.exists():
             abort(404)
-        return Response(report_path.read_text(encoding="utf-8"), mimetype="text/html")
+        return send_file(report_path, mimetype="text/html; charset=utf-8")
 
     @app.get("/runs/<run_id>/export/<export_format>")
     def run_export(run_id: str, export_format: str) -> Response:
