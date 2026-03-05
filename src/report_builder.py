@@ -18,6 +18,7 @@ from .models import (
 
 TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
 REPORT_TEMPLATE_NAME = "report.html.j2"
+MAX_REPORT_TABLE_ROWS = 500
 
 METHODS_NOTES = [
     "Input variants are normalized from VCF into one record per alternate allele.",
@@ -191,11 +192,14 @@ def build_report_context(
     """Build the full template context for the HTML report."""
     summary = build_report_summary(ranked_variants)
     assembly_value = run_metadata.assembly.value if run_metadata is not None else None
-    rows = [_build_variant_row(ranked_variant) for ranked_variant in ranked_variants]
+    rows = [_build_variant_row(ranked_variant) for ranked_variant in ranked_variants[:MAX_REPORT_TABLE_ROWS]]
     top_findings = rows[: min(5, len(rows))]
     conflict_rows = [row for row in rows if row["conflict"] == "Yes"]
+    truncated_variant_count = max(0, len(ranked_variants) - MAX_REPORT_TABLE_ROWS)
     report_summary = {
         "variant_count": summary.input_variant_count,
+        "displayed_variant_count": len(rows),
+        "truncated_variant_count": truncated_variant_count,
         "clinvar_matched_count": summary.clinvar_matched_count,
         "clinvar_unmatched_count": summary.clinvar_unmatched_count,
         "conflict_count": summary.conflict_flagged_count,

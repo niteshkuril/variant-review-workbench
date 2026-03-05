@@ -128,6 +128,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         project_root=project_root,
         job_execution_mode=str(app.config["JOB_EXECUTION_MODE"]),
         max_upload_mb=int(app.config["MAX_UPLOAD_MB"]),
+        job_max_workers=max(1, int(app.config["JOB_MAX_WORKERS"])),
         upload_root=Path(str(app.config["UPLOAD_ROOT"])),
         run_output_root=Path(str(app.config["RUN_OUTPUT_ROOT"])),
         run_retention_hours=int(app.config["RUN_RETENTION_HOURS"]),
@@ -149,6 +150,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     app.extensions["job_runner"] = JobRunner(
         store=app.extensions["job_store"],
         execution_mode=str(app.config["JOB_EXECUTION_MODE"]),
+        max_workers=max(1, int(app.config["JOB_MAX_WORKERS"])),
     )
 
     @app.context_processor
@@ -316,6 +318,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         payload = runtime_settings.health_snapshot()
         payload["job_execution_mode"] = str(app.config["JOB_EXECUTION_MODE"])
         payload["job_execution_mode_configured"] = str(app.config["JOB_EXECUTION_MODE_CONFIGURED"])
+        payload["job_max_workers"] = int(app.config["JOB_MAX_WORKERS"])
         payload["max_upload_mb"] = runtime_settings.max_upload_mb
         status_code = 200 if payload["status"] == "ok" else 503
         return payload, status_code

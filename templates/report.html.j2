@@ -297,6 +297,12 @@
 
     <section>
       <h2>Variant Table</h2>
+      {% if summary.truncated_variant_count > 0 %}
+        <p class="small">
+          Showing first {{ summary.displayed_variant_count }} of {{ summary.variant_count }} variants
+          ({{ summary.truncated_variant_count }} omitted for web report performance).
+        </p>
+      {% endif %}
       <table>
         <thead>
           <tr>

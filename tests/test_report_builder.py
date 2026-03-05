@@ -15,7 +15,13 @@ from src.models import (
     ReviewPriorityTier,
     RunMetadata,
 )
-from src.report_builder import build_report_context, build_variant_export_records, render_html_report, write_html_report
+from src.report_builder import (
+    MAX_REPORT_TABLE_ROWS,
+    build_report_context,
+    build_variant_export_records,
+    render_html_report,
+    write_html_report,
+)
 from src.report_builder import build_report_export_payload, render_markdown_report, write_markdown_report, write_report_export_json
 
 
@@ -210,6 +216,30 @@ class ReportBuilderTests(unittest.TestCase):
             self.assertTrue(json_path.exists())
             self.assertIn("Variant Review Report", markdown_path.read_text(encoding="utf-8"))
             self.assertIn('"report_title": "Variant Review Report"', json_path.read_text(encoding="utf-8"))
+
+    def test_build_report_context_limits_variant_rows_for_large_runs(self) -> None:
+        ranked_variants = [
+            build_ranked_variant(
+                f"record-{index}",
+                "TP53",
+                43045702 + index,
+                ReviewPriorityTier.REVIEW,
+                7.0,
+            )
+            for index in range(MAX_REPORT_TABLE_ROWS + 25)
+        ]
+        metadata = RunMetadata(
+            input_path="data/demo.vcf",
+            output_dir="outputs/demo",
+            assembly=GenomeAssembly.GRCH38,
+        )
+
+        context = build_report_context(ranked_variants, metadata)
+
+        self.assertEqual(context["summary"]["variant_count"], MAX_REPORT_TABLE_ROWS + 25)
+        self.assertEqual(context["summary"]["displayed_variant_count"], MAX_REPORT_TABLE_ROWS)
+        self.assertEqual(context["summary"]["truncated_variant_count"], 25)
+        self.assertEqual(len(context["variant_rows"]), MAX_REPORT_TABLE_ROWS)
 
 
 if __name__ == "__main__":
