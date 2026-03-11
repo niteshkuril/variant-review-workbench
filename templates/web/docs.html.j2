@@ -2,7 +2,7 @@
 
 {% block content %}
   <section class="hero">
-    <p class="eyebrow">Project Overview</p>
+    <p class="eyebrow">Interface Overview</p>
     <h1>Variant Review Workbench</h1>
     <p>
       This web interface sits on top of the existing CLI-first architecture. The shared pipeline remains responsible
@@ -21,8 +21,8 @@
         <p>A browser entry point for the same research pipeline and output contract already used by the CLI.</p>
       </div>
       <div class="doc-card">
-        <strong>What it demonstrates</strong>
-        <p>Reusable backend orchestration, artifact provenance, a hosted report workflow, and deployment-aware runtime controls.</p>
+        <strong>Core behavior</strong>
+        <p>Shared backend orchestration, artifact provenance, a hosted report workflow, and deployment-aware runtime controls.</p>
       </div>
       <div class="doc-card">
         <strong>What it is not</strong>
@@ -58,7 +58,7 @@
   <section class="panel" style="margin-top: 24px;">
     <div class="panel-grid">
       <div>
-        <h2>Hosted demo guardrails</h2>
+        <h2>Hosted guardrails</h2>
         <ul>
           <li>Research-use only, with no clinical decision support claims.</li>
           <li>Uploads are capped at {{ web_scope.max_upload_mb }} MB per request.</li>
@@ -80,19 +80,19 @@
   <section class="panel" style="margin-top: 24px;">
     <div class="panel-grid">
       <div>
-        <h2>ReadMe highlights</h2>
+        <h2>Repository notes</h2>
         <ul>
           <li>The repository includes both CLI and web quick-start paths.</li>
-          <li>The processed ClinVar cache is now documented as a reusable shared dependency, not a per-query warm-up.</li>
+          <li>The processed ClinVar cache is documented as a reusable shared dependency, not a per-query warm-up.</li>
           <li>`DEPLOYMENT.md` captures the Render disk layout, environment variables, and smoke-test workflow.</li>
         </ul>
       </div>
       <div>
-        <h2>Why this matters</h2>
+        <h2>Operational notes</h2>
         <ul>
-          <li>The hosted demo now communicates the same process as the repository docs.</li>
+          <li>The hosted interface follows the same process described in the repository docs.</li>
           <li>Users are less likely to confuse run retention with cache build timing.</li>
-          <li>The web app presents itself as a serious review tool rather than an exploratory mockup.</li>
+          <li>The web app keeps runtime constraints and data-handling limits explicit.</li>
         </ul>
       </div>
     </div>

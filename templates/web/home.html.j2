@@ -13,8 +13,7 @@
         <h1>Review a VCF through the same pipeline used by the CLI.</h1>
         <p class="hero-lead">
           The browser workflow reuses the existing ClinVar-first annotation, ranking, reporting, and export
-          stack. It is designed for review, demonstration, and reproducible artifact generation, not for
-          clinical operations.
+          stack. It is designed for review and reproducible artifact generation, not for clinical operations.
         </p>
         <p>
           Hosted runs write into isolated workspaces and the service reuses a shared processed ClinVar cache.
@@ -27,7 +26,7 @@
         </div>
       </div>
       <div class="meta-card">
-        <strong>Hosted demo profile</strong>
+        <strong>Hosted web profile</strong>
         <p>The site accepts a VCF upload, runs the shared pipeline, renders the generated HTML report, and exposes HTML, JSON, or Markdown exports from the completed run.</p>
         <dl class="data-list">
           <div>
@@ -132,7 +131,7 @@
         </button>
         <a class="button secondary" href="{{ url_for('docs') }}">Open overview</a>
       </div>
-      <p class="footer-note">This interface remains within the project’s original scope: research triage, reproducible outputs, and transparent artifact provenance.</p>
+      <p class="footer-note">This interface is scoped to research triage, reproducible outputs, and transparent artifact provenance.</p>
     </form>
   </section>
 {% endblock %}
