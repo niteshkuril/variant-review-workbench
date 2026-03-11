@@ -31,7 +31,6 @@ This project is:
 
 - a research triage workbench
 - a reproducible annotation and reporting tool
-- a portfolio-quality bioinformatics-adjacent engineering project
 
 This project is not:
 
@@ -198,7 +197,7 @@ Pick one of these entry points:
 1. CLI: run the existing pipeline directly and inspect the generated artifacts in `outputs/`.
 2. Web: start the Flask app locally and submit a VCF from the browser.
 
-If you only want to understand the project quickly, start with the web interface or open `outputs/demo_run/report.html`.
+To inspect the generated outputs first, start with the web interface or open `outputs/demo_run/report.html`.
 
 ## Web Interface
 
@@ -382,7 +381,7 @@ The PharmGKB-enabled demo run adds cached public PGx context and, on the current
 
 ## Demo Walkthrough
 
-If you want the shortest possible path to understanding the project, inspect these generated artifacts in order:
+Inspect these generated artifacts in order:
 
 1. `outputs/demo_run/report.html`
 2. `outputs/demo_run/summary.json`
@@ -393,7 +392,7 @@ What the base demo should immediately show:
 
 - the hero summary confirms all four demo variants matched ClinVar
 - the top findings section shows both conflict-flagged and non-conflict findings
-- the conflict review queue is not empty, which demonstrates why the workbench is useful
+- the conflict review queue is not empty
 - the rationale text explains why `BRCA1`, `APC`, and `DPYD` outrank `TP53`
 
 What the PharmGKB demo should immediately show:
@@ -419,7 +418,7 @@ Base report top findings:
 
 ![Base report top findings](data/screenshots/top_findings.png)
 
-This view shows the ranked findings that make the demo useful immediately:
+This view shows the ranked findings near the top of the report:
 
 - `BRCA1` as a high-priority conflict-flagged finding
 - `APC` as a strong non-conflict pathogenic finding
@@ -429,7 +428,7 @@ Base report conflict review queue:
 
 ![Base report conflict review queue](data/screenshots/conflict_review_queue.png)
 
-This view shows the workbench behaving like an actual triage queue rather than a simple annotation dump:
+This view shows the conflict review queue section:
 
 - the conflict review queue is populated
 - the highest-friction findings are isolated into a reviewable section
@@ -568,13 +567,6 @@ Current automated test count:
 
 - `76` passing unit tests
 
-## Reviewer Notes
-
-If you are reviewing this repository quickly:
-
-1. Open the homepage or the generated demo report first.
-2. Check `summary.json` and `prioritized_variants.json` to confirm the machine-readable contract.
-3. Read [DEPLOYMENT.md](DEPLOYMENT.md) if you want the hosted shape rather than the local CLI shape.
 
 ## Limitations
 
