@@ -1,3 +1,5 @@
+[![CI](https://github.com/Maxim-Firsov/variant-review-workbench/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Maxim-Firsov/variant-review-workbench/actions/workflows/ci.yml)
+
 # Variant Review Workbench
 
 ClinVar-first small-variant triage and reporting tool for research-oriented review workflows.
