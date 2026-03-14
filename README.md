@@ -522,10 +522,7 @@ Human-readable source links are also maintained in:
 
 This repository contains code written for the workbench itself. Upstream datasets and APIs remain governed by their respective providers.
 
-- Repository code license: see [LICENSE](LICENSE)
-  - free use for personal, educational, research, and internal non-commercial purposes
-  - no commercial use
-  - redistribution requires clear credit to the original author and project
+- Repository code license: [Apache License 2.0](LICENSE)
 - ClinVar data usage and redistribution expectations should be reviewed through NCBI documentation.
 - PharmGKB API usage should follow PharmGKB terms and public API guidance.
 
@@ -567,7 +564,7 @@ Implemented and tested:
 
 Current automated test count:
 
-- `76` passing unit tests
+- `86` passing unit tests
 
 
 ## Limitations
