@@ -37,10 +37,18 @@ class WebAppTests(unittest.TestCase):
                 "DISABLE_CLINVAR_CACHE": False,
             }
         )
-        self.client = self.app.test_client()
+        self._clients = []
+        self.client = self._make_client(self.app)
 
     def tearDown(self) -> None:
+        for client in reversed(self._clients):
+            client._context_stack.close()
         self.tmpdir.cleanup()
+
+    def _make_client(self, app) -> object:
+        client = app.test_client()
+        self._clients.append(client)
+        return client
 
     def _write_reference_files(self) -> None:
         with gzip.open(self.variant_summary, "wt", encoding="utf-8", newline="") as handle:
@@ -240,7 +248,7 @@ class WebAppTests(unittest.TestCase):
             }
         )
 
-        response = threaded_app.test_client().get("/healthz")
+        response = self._make_client(threaded_app).get("/healthz")
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
@@ -286,7 +294,7 @@ class WebAppTests(unittest.TestCase):
             }
         )
 
-        response = broken_app.test_client().get("/healthz")
+        response = self._make_client(broken_app).get("/healthz")
 
         self.assertEqual(response.status_code, 503)
         payload = response.get_json()
@@ -330,6 +338,8 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(redirected.status_code, 200)
         self.assertIn("text/markdown", redirected.content_type)
         self.assertIn(b"# Variant Review Report", redirected.data)
+        redirected.close()
+        response.close()
 
     def test_results_page_renders_placeholder(self) -> None:
         create_response = self.client.post(
@@ -509,18 +519,20 @@ class WebAppTests(unittest.TestCase):
             }
         )
 
-        response = small_limit_app.test_client().post(
+        response = self._make_client(small_limit_app).post(
             "/runs",
             data={
                 "assembly": "GRCh38",
                 "export_format": "json",
-                "vcf_file": (io.BytesIO(self._demo_vcf_bytes() + (b"A" * (1024 * 1024))), "demo.vcf"),
+                "vcf_file": (io.BytesIO(self._demo_vcf_bytes()), "demo.vcf"),
             },
             content_type="multipart/form-data",
+            environ_overrides={"CONTENT_LENGTH": str((1024 * 1024) + 1)},
         )
 
         self.assertEqual(response.status_code, 413)
         self.assertIn(b"Uploaded file exceeds the 1 MB limit.", response.data)
+        response.close()
 
     def test_uploaded_file_is_isolated_in_run_workspace(self) -> None:
         response = self.client.post(
@@ -619,7 +631,7 @@ class WebAppTests(unittest.TestCase):
                 "DISABLE_CLINVAR_CACHE": False,
             }
         )
-        client = threaded_app.test_client()
+        client = self._make_client(threaded_app)
 
         status_payload = None
         with patch("src.web.app._run_pipeline_job", side_effect=RuntimeError("synthetic pipeline failure")):
@@ -667,7 +679,7 @@ class WebAppTests(unittest.TestCase):
                 "DISABLE_CLINVAR_CACHE": False,
             }
         )
-        client = threaded_app.test_client()
+        client = self._make_client(threaded_app)
 
         def fake_run_pipeline_job(**kwargs: object) -> dict[str, object]:
             time.sleep(0.35)
@@ -745,7 +757,7 @@ class WebAppTests(unittest.TestCase):
                 "DISABLE_CLINVAR_CACHE": False,
             }
         )
-        client = threaded_app.test_client()
+        client = self._make_client(threaded_app)
 
         def fake_run_pipeline_job(**kwargs: object) -> dict[str, object]:
             time.sleep(0.2)
